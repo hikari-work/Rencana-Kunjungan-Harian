@@ -9,6 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Document(collection = "visit")
 @Getter
@@ -31,4 +32,6 @@ public class Visit {
     private Long principal;
     private Long plafond;
     private Long penalty;
+    private String note;
+    private String imageUrl;
 }
