@@ -4,12 +4,9 @@ import com.example.tagihan.entity.Bills;
 import com.example.tagihan.repository.BillsRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
 
 @Slf4j
 @Service
@@ -32,11 +29,7 @@ public class BillsService {
                 .doOnSuccess(v -> log.info("Proses sinkronisasi selesai!"))
                 .doOnError(e -> log.error("Terjadi kegagalan: {}", e.getMessage()));
     }
-    private Mono<List<Bills>> downloadAndSave(String url) {
-        return downloadService.downloadWithTypeReference(
-                url,
-                new ParameterizedTypeReference<>() {
-                }
-        );
+    public Mono<Bills> findBillBySpk(String spk) {
+        return billsRepo.findById(spk);
     }
 }
