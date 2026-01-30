@@ -34,4 +34,5 @@ public class Visit {
     private Long penalty;
     private String note;
     private String imageUrl;
+    private Long appointment;
 }

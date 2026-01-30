@@ -1,22 +1,17 @@
 package com.example.tagihan.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class WebhookPayload {
-    @JsonProperty("device_id")
-    private String deviceId;
-
-    private String event;
-
-    private WebhookPayload payload;
+@Builder
+public class ResponseDTO {
+	private String code;
+	private String message;
 }

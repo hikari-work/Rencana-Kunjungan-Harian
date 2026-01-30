@@ -16,6 +16,5 @@ public class User {
     @Id
     private String userId;
     private String accountOfficer;
-
     private Roles role;
 }

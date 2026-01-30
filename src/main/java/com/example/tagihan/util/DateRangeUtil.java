@@ -16,9 +16,7 @@ public class DateRangeUtil {
     }
 
     public static DateRange createDayRange(LocalDate date) {
-        Instant startOfDay = date.atStartOfDay(JAKARTA_ZONE).toInstant();
-        Instant endOfDay = date.atTime(LocalTime.MAX).atZone(JAKARTA_ZONE).toInstant();
-        return new DateRange(startOfDay, endOfDay);
+		return createDateRange(date, date);
     }
 
     public static DateRange createDayRange(String dateStr) {
