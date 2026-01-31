@@ -18,5 +18,5 @@ public class WebhookPayload {
 
     private String event;
 
-    private WebhookPayload payload;
+    private WebhookData payload;
 }

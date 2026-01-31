@@ -104,9 +104,7 @@ public class StateService {
 								visit.setPlafond(bills.getPlafond());
 								log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
 							},
-							err -> {
-								log.error("Error fetching bills for SPK {}: {}", visitUpdate.getSpk(), err.getMessage());
-							}
+							err -> log.error("Error fetching bills for SPK {}: {}", visitUpdate.getSpk(), err.getMessage())
 					);
 
 			if (visit.getSpk() == null) {
@@ -180,15 +178,15 @@ public class StateService {
 	public String getStateName(State state) {
 		if (state == null) return "Unknown";
 
-		switch (state) {
-			case REGISTER: return "Registrasi";
-			case ADD_SPK: return "Tambah SPK";
-			case ADD_CAPTION: return "Tambah Catatan";
-			case ADD_REMINDER: return "Tambah Reminder";
-			case ADD_LIMIT: return "Tambah Limit";
-			case ADD_APPOINTMENT: return "Tambah Appointment";
-			default: return state.name();
-		}
+        return switch (state) {
+            case REGISTER -> "Registrasi";
+            case ADD_SPK -> "Tambah SPK";
+            case ADD_CAPTION -> "Tambah Catatan";
+            case ADD_REMINDER -> "Tambah Reminder";
+            case ADD_LIMIT -> "Tambah Limit";
+            case ADD_APPOINTMENT -> "Tambah Appointment";
+            default -> state.name();
+        };
 	}
 
 
