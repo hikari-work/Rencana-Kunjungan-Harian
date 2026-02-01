@@ -1,0 +1,5 @@
+### GET request to example server
+POST https://gowa-tcmmbaxcgo5l.cgk-janaka.sumopod.my.id/send/message
+X-Device-Id :
+
+###

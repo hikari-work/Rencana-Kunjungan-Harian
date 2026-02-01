@@ -27,6 +27,8 @@ public class Visit {
     @CreatedDate
     private Instant visitDate;
     private String spk;
+    private String name;
+    private String address;
     private Long debitTray;
     private Long interest;
     private Long principal;

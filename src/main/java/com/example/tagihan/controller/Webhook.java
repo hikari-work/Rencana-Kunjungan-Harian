@@ -24,6 +24,9 @@ public class Webhook {
 
     @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<String>> webhook(@RequestBody WebhookPayload body) {
+        if (body.getEvent().equals("message.ack")) {
+            return Mono.just(ResponseEntity.ok("OK"));
+        }
         return whatsAppMessageDispatcher
                 .dispatch(body)
                 .thenReturn(ResponseEntity.ok("OK"));

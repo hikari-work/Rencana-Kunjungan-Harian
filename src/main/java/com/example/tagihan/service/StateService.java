@@ -2,8 +2,11 @@ package com.example.tagihan.service;
 
 import com.example.tagihan.entity.Visit;
 import com.example.tagihan.entity.VisitType;
+import com.example.tagihan.event.StateChangedEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,12 +15,14 @@ import java.util.Map;
 @Slf4j
 @Service
 public class StateService {
+	private final ApplicationEventPublisher publisher;
 
 	private final BillsService billsService;
 	private final Map<String, StateData> state = new LinkedHashMap<>();
 
-	public StateService(BillsService billsService) {
+	public StateService(BillsService billsService, ApplicationEventPublisher publisher) {
 		this.billsService = billsService;
+		this.publisher = publisher;
 	}
 
 	public boolean isUserInState(String jid) {
@@ -52,6 +57,7 @@ public class StateService {
 	public void setState(String jid, State newState) {
 		if (isUserInState(jid)) {
 			state.get(jid).setCurrentState(newState);
+			publisher.publishEvent(new StateChangedEvent(this, state.get(jid)));
 			log.info("State updated for JID: {}, new State: {}", jid, newState);
 		}
 	}
@@ -82,39 +88,49 @@ public class StateService {
 		log.info("State updated for JID: {}", jid);
 	}
 
-	public State setVisitData(String jid, Visit visitUpdate) {
+	public Mono<State> setVisitData(String jid, Visit visitUpdate) {
 		if (!isUserInState(jid)) {
 			log.warn("User {} not in state", jid);
-			return null;
+			return Mono.empty();
 		}
 
 		StateData stateData = getUserState(jid);
 		Visit visit = stateData.getVisit();
-		VisitType visitType = visit.getVisitType();
 
 		if (visit.getSpk() == null && visitUpdate.getSpk() != null) {
-			billsService.findBillBySpk(visitUpdate.getSpk())
-					.subscribe(
-							bills -> {
-								visit.setSpk(visitUpdate.getSpk());
-								visit.setDebitTray(bills.getDebitTray());
-								visit.setInterest(bills.getLastInterest());
-								visit.setPrincipal(bills.getPrincipal());
-								visit.setPenalty(bills.getPenaltyInterest() + bills.getPenaltyPrincipal());
-								visit.setPlafond(bills.getPlafond());
-								log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
-							},
-							err -> log.error("Error fetching bills for SPK {}: {}", visitUpdate.getSpk(), err.getMessage())
-					);
+			return billsService.findBillBySpk(visitUpdate.getSpk())
+					.flatMap(bills -> {
+						visit.setSpk(visitUpdate.getSpk());
+						visit.setDebitTray(bills.getDebitTray());
+						visit.setInterest(bills.getLastInterest());
+						visit.setPrincipal(bills.getPrincipal());
+						visit.setPenalty(bills.getPenaltyInterest() + bills.getPenaltyPrincipal());
+						visit.setPlafond(bills.getPlafond());
+						visit.setName(bills.getName());
+						visit.setAddress(bills.getAddress());
+						log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
 
-			if (visit.getSpk() == null) {
-				setState(jid, State.ADD_SPK);
-				return State.ADD_SPK;
-			}
+						return processVisitData(jid, stateData, visit, visitUpdate);
+					})
+					.switchIfEmpty(
+							Mono.error(new IllegalStateException("SPK tidak ditemukan"))
+					);
 		}
+
+		return processVisitData(jid, stateData, visit, visitUpdate);
+	}
+
+	private Mono<State> processVisitData(String jid, StateData stateData, Visit visit, Visit visitUpdate) {
+		if (visit.getSpk() == null) {
+			setState(jid, State.ADD_SPK);
+			return Mono.just(State.ADD_SPK);
+		}
+
+		VisitType visitType = visit.getVisitType();
 
 		if (visit.getVisitType() == null && visitUpdate.getVisitType() != null) {
 			visit.setVisitType(visitUpdate.getVisitType());
+			visitType = visitUpdate.getVisitType();
 		}
 
 		if (visit.getVisitDate() == null && visitUpdate.getVisitDate() != null) {
@@ -126,7 +142,7 @@ public class StateService {
 				visit.setNote(visitUpdate.getNote());
 			} else {
 				setState(jid, State.ADD_CAPTION);
-				return State.ADD_CAPTION;
+				return Mono.just(State.ADD_CAPTION);
 			}
 		}
 
@@ -140,7 +156,7 @@ public class StateService {
 					visit.setAppointment(visitUpdate.getAppointment());
 				} else {
 					setState(jid, State.ADD_APPOINTMENT);
-					return State.ADD_APPOINTMENT;
+					return Mono.just(State.ADD_APPOINTMENT);
 				}
 			}
 		}
@@ -151,7 +167,7 @@ public class StateService {
 			}
 		}
 
-		return stateData.getCurrentState();
+		return Mono.just(stateData.getCurrentState());
 	}
 
 	public boolean removeState(String jid) {
@@ -185,7 +201,6 @@ public class StateService {
             case ADD_REMINDER -> "Tambah Reminder";
             case ADD_LIMIT -> "Tambah Limit";
             case ADD_APPOINTMENT -> "Tambah Appointment";
-            default -> state.name();
         };
 	}
 
@@ -212,8 +227,7 @@ public class StateService {
 					visit.getAppointment() != null;
 			case CANVASING, SURVEY ->
 					visit.getPlafond() != null;
-			default -> false;
-		};
+        };
 	}
 
 	public Map<String, StateData> getAllStates() {

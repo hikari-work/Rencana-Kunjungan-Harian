@@ -12,6 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Base64;
 
@@ -21,13 +22,16 @@ public class WhatsappService {
 
 
 	private final WebClient webClient;
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public WhatsappService(WebClient.Builder webClientBuilder,
 						   @Value("${base.whatsapp.url}") String whatsappUrl,
-						   @Value("${base.whatsapp.token}") String token) {
+						   @Value("${base.whatsapp.token}") String token,
+						   @Value("${base.whatsapp.device.id}") String deviceId) {
 		this.webClient = webClientBuilder
 				.baseUrl(whatsappUrl)
 				.defaultHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString((token).getBytes()))
+				.defaultCookie("X-Device-Id", deviceId)
 				.build();
 	}
 	public Mono<ResponseDTO> sendMessage(WhatsAppRequestDTO whatsappRequestDTO) {
@@ -149,9 +153,29 @@ public class WhatsappService {
 				.uri("/send/message")
 				.contentType(MediaType.APPLICATION_JSON)
 				.bodyValue(whatsAppRequestDTO)
-				.retrieve()
-				.bodyToMono(ResponseDTO.class)
+				.exchangeToMono(response -> {
+					if (response.statusCode().isError()) {
+						return response.bodyToMono(String.class)
+								.flatMap(errorBody -> {
+									log.error("API Error Raw Response: {}", errorBody);
+									return Mono.error(new RuntimeException("API Error: " + response.statusCode()));
+								});
+					}
+
+					// Ambil raw body sebagai String
+					return response.bodyToMono(String.class)
+							.doOnNext(rawBody -> log.info("Raw Response: {}", rawBody))
+                            .<ResponseDTO>handle((rawBody, sink) -> {
+                                try {
+                                    sink.next(objectMapper.readValue(rawBody, ResponseDTO.class));
+                                } catch (Exception e) {
+                                    log.error("Mapping error: {}", e.getMessage());
+                                    sink.error(new RuntimeException("Failed to parse response"));
+                                }
+                            });
+				})
 				.map(this::map)
+				.doOnError(err -> log.error("Processing Error: {}", err.getMessage()))
 				.onErrorResume(this::handleError);
 	}
 
