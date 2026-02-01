@@ -48,4 +48,7 @@ public class DateRangeUtil {
             return !instant.isBefore(start) && !instant.isAfter(end);
         }
     }
+    public static LocalDate parseDate(String dateStr) {
+        return LocalDate.parse(dateStr);
+    }
 }
