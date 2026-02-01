@@ -13,6 +13,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.net.URI;
+
 
 @Slf4j
 @Service
@@ -30,7 +32,7 @@ public class DownloadService {
 
     public Flux<Bills> downloadAndParseCsv(String url) {
         return webClient.get()
-                .uri(url)
+                .uri(URI.create(url))
                 .retrieve()
                 .bodyToFlux(DataBuffer.class)
                 .transform(dataBufferFlux ->
@@ -44,10 +46,28 @@ public class DownloadService {
                 .filter(line -> !line.isBlank())
                 .map(line -> line.split(","))
                 .filter(columns -> columns.length >= 30)
+                .map(columns -> {
+                    for (int i = 0; i < columns.length; i++) {
+                        columns[i] = removeQuotes(columns[i]);
+                    }
+                    return columns;
+                })
                 .map(this::mapToBill)
                 .doOnError(e -> log.error("Streaming error: {}", e.getMessage()))
                 .subscribeOn(Schedulers.boundedElastic());
     }
+
+    private String removeQuotes(String value) {
+        if (value == null) {
+            return null;
+        }
+        value = value.trim();
+        if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
+
 
     public <T> Mono<T> downloadObject(String url, Class<T> responseType) {
         return webClient.get()

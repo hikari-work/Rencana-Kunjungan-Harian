@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @Builder
 public class Bills {
+    @Id
+    private String id;
 
     /**
      * The unique identifier of the customer.
@@ -25,9 +27,8 @@ public class Bills {
      */
     private String branch;
     /**
-     * The SPK (Surat Perintah Kerja) number, acting as the primary key.
+     * The SPK (Surat Perjanjian Kredit) number, acting as the primary key.
      */
-    @Id
     private String noSpk;
     /**
      * The location of the office handling the bill.

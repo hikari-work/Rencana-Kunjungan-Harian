@@ -71,9 +71,13 @@ public class Tagihan implements Messagehandler {
                     .doOnSubscribe(sub -> log.info("Sending No Part"))
                     .then();
         }
+        if (parts.length == 1) {
+
+        }
 
         return billsService.findBillBySpk(parts[0])
-                .flatMap(bill -> sendBill(chatId, bill, parts[1], getReminder(parts[1]), NumberParser.parseFirstNumber(parts[1])))
+                .doOnSubscribe(sub -> log.info("Finding bill by spk: {}", parts[0]))
+                .flatMap(bill -> sendBill(chatId, bill, parts[1], getReminder(parts[1]), NumberParser.parseFirstNumber(parts[0])))
                 .switchIfEmpty(
                         Mono.defer(() -> {
                             WhatsAppRequestDTO canceler = WhatsAppRequestDTO.builder()

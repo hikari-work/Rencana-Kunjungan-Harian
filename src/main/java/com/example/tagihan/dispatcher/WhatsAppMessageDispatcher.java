@@ -11,6 +11,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @Slf4j
@@ -20,6 +22,7 @@ public class WhatsAppMessageDispatcher {
 
     private final ApplicationContext applicationContext;
     private static final String MESSAGE_PREFIX = ".";
+    private final Set<String> processingMessages = ConcurrentHashMap.newKeySet();
 
     private final Map<String, Function<WebhookPayload, Mono<Void>>> config = new HashMap<>();
 
@@ -41,9 +44,14 @@ public class WhatsAppMessageDispatcher {
         });
     }
 
-    public Mono<Void> dispatch(WebhookPayload message) {
+    public Mono<Long> dispatch(WebhookPayload message) {
         String caption = CaptionFindUtil.caption(message);
         log.info("Caption: {}", caption);
+        String messageId = message.getPayload().getId();
+        if (!processingMessages.add(messageId)) {
+            log.warn("Message already being processed: {}", messageId);
+            return Mono.empty();
+        }
         if (caption == null || !caption.startsWith(MESSAGE_PREFIX)) {
             return Mono.empty();
         }
@@ -62,6 +70,9 @@ public class WhatsAppMessageDispatcher {
                 .onErrorResume(error -> {
                     log.error("Error handling command: {}", command, error);
                     return Mono.empty();
-                });
+                }).then(Mono.defer(() -> {
+                    processingMessages.remove(messageId);
+                    return Mono.just(0L);
+                }));
     }
 }

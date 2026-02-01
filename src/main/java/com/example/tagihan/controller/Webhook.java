@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @RestController
@@ -27,9 +28,17 @@ public class Webhook {
         if (body.getEvent().equals("message.ack")) {
             return Mono.just(ResponseEntity.ok("OK"));
         }
-        return whatsAppMessageDispatcher
+
+        whatsAppMessageDispatcher
                 .dispatch(body)
-                .thenReturn(ResponseEntity.ok("OK"));
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        null,
+                        error -> log.error("Error processing webhook: ", error),
+                        () -> log.debug("Webhook processed successfully")
+                );
+
+        return Mono.just(ResponseEntity.ok("OK"));
     }
     @GetMapping("/")
     public Mono<WebhookData> webhook() {
