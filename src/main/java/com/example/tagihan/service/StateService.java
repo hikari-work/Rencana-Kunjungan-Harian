@@ -89,85 +89,152 @@ public class StateService {
 	}
 
 	public Mono<State> setVisitData(String jid, Visit visitUpdate) {
-		if (!isUserInState(jid)) {
-			log.warn("User {} not in state", jid);
-			return Mono.empty();
-		}
+		return getOrCreateStateData(jid, visitUpdate)
+				.flatMap(stateData -> {
+					Visit visit = stateData.getVisit();
 
-		StateData stateData = getUserState(jid);
-		Visit visit = stateData.getVisit();
+					if (visit.getSpk() == null && visitUpdate.getSpk() != null) {
+						return billsService.findBillBySpk(visitUpdate.getSpk())
+								.flatMap(bills -> {
+									visit.setSpk(visitUpdate.getSpk());
+									visit.setDebitTray(bills.getDebitTray());
+									visit.setInterest(bills.getLastInterest());
+									visit.setPrincipal(bills.getPrincipal());
+									visit.setPenalty(bills.getPenaltyInterest() + bills.getPenaltyPrincipal());
+									visit.setPlafond(bills.getPlafond());
+									visit.setName(bills.getName());
+									visit.setAddress(bills.getAddress());
+									log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
 
-		if (visit.getSpk() == null && visitUpdate.getSpk() != null) {
-			return billsService.findBillBySpk(visitUpdate.getSpk())
-					.flatMap(bills -> {
-						visit.setSpk(visitUpdate.getSpk());
-						visit.setDebitTray(bills.getDebitTray());
-						visit.setInterest(bills.getLastInterest());
-						visit.setPrincipal(bills.getPrincipal());
-						visit.setPenalty(bills.getPenaltyInterest() + bills.getPenaltyPrincipal());
-						visit.setPlafond(bills.getPlafond());
-						visit.setName(bills.getName());
-						visit.setAddress(bills.getAddress());
-						log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
+									saveUserState(jid, stateData);
 
-						return processVisitData(jid, stateData, visit, visitUpdate);
-					})
-					.switchIfEmpty(
-							Mono.error(new IllegalStateException("SPK tidak ditemukan"))
-					);
-		}
+									return processVisitData(jid, stateData, visit, visitUpdate);
+								})
+								.switchIfEmpty(
+										Mono.error(new IllegalStateException("SPK tidak ditemukan"))
+								);
+					}
 
-		return processVisitData(jid, stateData, visit, visitUpdate);
+					return processVisitData(jid, stateData, visit, visitUpdate);
+				});
+	}
+
+	private Mono<StateData> getOrCreateStateData(String jid, Visit visitUpdate) {
+		return Mono.defer(() -> {
+			try {
+				StateData existingState = getUserState(jid);
+				if (existingState != null) {
+					log.debug("Found existing state for user: {}", jid);
+					return Mono.just(existingState);
+				}
+			} catch (Exception e) {
+				log.info("No existing state found for user: {}, creating new state", jid);
+			}
+
+			Visit newVisit = Visit.builder()
+					.userId(jid)
+					.spk(visitUpdate.getSpk())
+					.name(visitUpdate.getName())
+					.note(visitUpdate.getNote())
+					.address(visitUpdate.getAddress())
+					.appointment(visitUpdate.getAppointment())
+					.reminderDate(visitUpdate.getReminderDate())
+					.debitTray(visitUpdate.getDebitTray())
+					.penalty(visitUpdate.getPenalty())
+					.interest(visitUpdate.getInterest())
+					.principal(visitUpdate.getPrincipal())
+					.plafond(visitUpdate.getPlafond())
+					.visitType(visitUpdate.getVisitType())
+					.visitDate(visitUpdate.getVisitDate())
+					.imageUrl(visitUpdate.getImageUrl())
+					.build();
+
+			StateData newStateData = StateData.builder()
+					.currentState(State.ADD_SPK)
+					.visit(newVisit)
+					.build();
+
+			saveUserState(jid, newStateData);
+			log.info("Created new state for user: {}", jid);
+
+			return Mono.just(newStateData);
+		});
 	}
 
 	private Mono<State> processVisitData(String jid, StateData stateData, Visit visit, Visit visitUpdate) {
+		if (visitUpdate.getVisitType() != null && visit.getVisitType() == null) {
+			visit.setVisitType(visitUpdate.getVisitType());
+		}
+
+		if (visitUpdate.getVisitDate() != null && visit.getVisitDate() == null) {
+			visit.setVisitDate(visitUpdate.getVisitDate());
+		}
+
+		if (visitUpdate.getNote() != null && visit.getNote() == null) {
+			visit.setNote(visitUpdate.getNote());
+		}
+
+		if (visitUpdate.getImageUrl() != null && visit.getImageUrl() == null) {
+			visit.setImageUrl(visitUpdate.getImageUrl());
+		}
+
+		if (visitUpdate.getAppointment() != null && visit.getAppointment() == null) {
+			visit.setAppointment(visitUpdate.getAppointment());
+		}
+
+		if (visitUpdate.getPlafond() != null && visit.getPlafond() == null) {
+			visit.setPlafond(visitUpdate.getPlafond());
+		}
+
+		// Tentukan state berikutnya berdasarkan data yang masih kurang
+		State nextState = determineNextState(visit);
+
+		// Update state
+		setState(jid, nextState);
+		stateData.setCurrentState(nextState);
+
+		// Simpan perubahan
+		saveUserState(jid, stateData);
+
+		log.info("Next state for user {}: {}", jid, nextState);
+
+		return Mono.just(nextState);
+	}
+
+	private State determineNextState(Visit visit) {
+		// 1. Cek SPK (paling pertama)
 		if (visit.getSpk() == null) {
-			setState(jid, State.ADD_SPK);
-			return Mono.just(State.ADD_SPK);
+			return State.ADD_SPK;
+		}
+
+		// 2. Cek Note/Caption
+		if (visit.getNote() == null) {
+			return State.ADD_CAPTION;
 		}
 
 		VisitType visitType = visit.getVisitType();
 
-		if (visit.getVisitType() == null && visitUpdate.getVisitType() != null) {
-			visit.setVisitType(visitUpdate.getVisitType());
-			visitType = visitUpdate.getVisitType();
-		}
-
-		if (visit.getVisitDate() == null && visitUpdate.getVisitDate() != null) {
-			visit.setVisitDate(visitUpdate.getVisitDate());
-		}
-
-		if (visit.getNote() == null) {
-			if (visitUpdate.getNote() != null) {
-				visit.setNote(visitUpdate.getNote());
-			} else {
-				setState(jid, State.ADD_CAPTION);
-				return Mono.just(State.ADD_CAPTION);
-			}
-		}
-
-		if (visit.getImageUrl() == null && visitUpdate.getImageUrl() != null) {
-			visit.setImageUrl(visitUpdate.getImageUrl());
-		}
-
+		// 3. Cek Appointment untuk MONITORING atau TAGIHAN
 		if (visitType == VisitType.MONITORING || visitType == VisitType.TAGIHAN) {
 			if (visit.getAppointment() == null) {
-				if (visitUpdate.getAppointment() != null) {
-					visit.setAppointment(visitUpdate.getAppointment());
-				} else {
-					setState(jid, State.ADD_APPOINTMENT);
-					return Mono.just(State.ADD_APPOINTMENT);
-				}
+				return State.ADD_APPOINTMENT;
 			}
 		}
 
+		// 4. Cek Plafond untuk CANVASING atau SURVEY
 		if (visitType == VisitType.CANVASING || visitType == VisitType.SURVEY) {
-			if (visit.getPlafond() == null && visitUpdate.getPlafond() != null) {
-				visit.setPlafond(visitUpdate.getPlafond());
+			if (visit.getPlafond() == null) {
+				return State.ADD_LIMIT; // Assuming you have this state
 			}
 		}
 
-		return Mono.just(stateData.getCurrentState());
+
+		return null;
+	}
+
+	// Helper method untuk save state (implement sesuai repository Anda)
+	private void saveUserState(String jid, StateData stateData) {
+		state.put(jid, stateData);
 	}
 
 	public boolean removeState(String jid) {

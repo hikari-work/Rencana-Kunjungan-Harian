@@ -7,6 +7,9 @@ import java.util.regex.Pattern;
 
 public class NumberParser {
     public static Long parseFirstNumber(String numberStr) {
+        if (numberStr == null || numberStr.isEmpty()) {
+            return null;
+        }
        List<Long> numbers = parseNumber(numberStr);
        return numbers.isEmpty() ? null : numbers.getFirst();
     }
