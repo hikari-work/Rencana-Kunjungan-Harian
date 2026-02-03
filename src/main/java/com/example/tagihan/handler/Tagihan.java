@@ -13,6 +13,7 @@ import com.example.tagihan.service.StateData;
 import com.example.tagihan.service.StateService;
 import com.example.tagihan.service.WhatsappService;
 import com.example.tagihan.util.CurrencyUtil;
+import com.example.tagihan.util.DateRangeUtil;
 import com.example.tagihan.util.NumberParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class Tagihan implements Messagehandler {
     private final BillsService billsService;
     private final StateDispatcher stateDispatcher;
 
-    private static final Pattern DATE_PATTERN = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
+
     private static final String BILL_NOT_FOUND_ERROR = "BILL_NOT_FOUND";
 
     @Override
@@ -88,7 +89,7 @@ public class Tagihan implements Messagehandler {
                         })
                 )
                 .flatMap(bill -> {
-                    LocalDate reminder = parseReminder(param1);
+                    LocalDate reminder = DateRangeUtil.parseDate(param1);
                     Long appointment = parseAppointment(param1);
 
                     log.info("Processing bill - reminder: {}, appointment: {}", reminder, appointment);
@@ -186,23 +187,7 @@ public class Tagihan implements Messagehandler {
                 .then();
     }
 
-    private LocalDate parseReminder(String text) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
 
-        try {
-            Matcher matcher = DATE_PATTERN.matcher(text);
-            if (matcher.find()) {
-                String date = matcher.group();
-                return LocalDate.parse(date);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse reminder date from: {}", text, e);
-        }
-
-        return null;
-    }
 
     private Long parseAppointment(String text) {
         if (text == null || text.isEmpty()) {

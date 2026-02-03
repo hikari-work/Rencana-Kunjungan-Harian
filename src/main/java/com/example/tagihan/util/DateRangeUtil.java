@@ -1,13 +1,19 @@
 package com.example.tagihan.util;
 
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-
+@Slf4j
 public class DateRangeUtil {
+
+    private static final Pattern DATE_PATTERN = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
     private static final ZoneId JAKARTA_ZONE = ZoneId.of("Asia/Jakarta");
 
@@ -34,6 +40,23 @@ public class DateRangeUtil {
         LocalDate startDate = LocalDate.parse(startDateStr);
         LocalDate endDate = LocalDate.parse(endDateStr);
         return createDateRange(startDate, endDate);
+    }
+    private static LocalDate parseReminder(String text) {
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
+
+        try {
+            Matcher matcher = DATE_PATTERN.matcher(text);
+            if (matcher.find()) {
+                String date = matcher.group();
+                return LocalDate.parse(date);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse reminder date from: {}", text, e);
+        }
+
+        return null;
     }
 
     public record DateRange(Instant start, Instant end) {

@@ -1,5 +1,6 @@
 package com.example.tagihan.handler;
 
+import com.example.tagihan.dto.WhatsAppMessageType;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
 import com.example.tagihan.event.StateChangedEvent;
 import com.example.tagihan.service.State;
@@ -24,7 +25,6 @@ public class StateChangedListener {
     public void onStateChanged(StateChangedEvent event) {
         StateData stateData = event.getStateData();
 
-        // Validasi null
         if (stateData == null || stateData.getCurrentState() == null) {
             log.warn("StateData or currentState is null, skipping notification");
             return;
@@ -54,7 +54,6 @@ public class StateChangedListener {
         String chatId = stateData.getVisit().getUserId();
         String name = stateData.getVisit().getName();
 
-        // Validasi null
         if (chatId == null || chatId.isBlank()) {
             log.warn("ChatId is null or blank, skipping REGISTER notification");
             return Mono.empty();
@@ -67,6 +66,7 @@ public class StateChangedListener {
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
                 .message(message)
                 .build();
 
@@ -92,6 +92,7 @@ public class StateChangedListener {
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
                 .message(message)
                 .build();
 
@@ -117,6 +118,7 @@ public class StateChangedListener {
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
                 .message(message)
+                .type(WhatsAppMessageType.TEXT)
                 .build();
 
         return whatsappService.sendMessage(dto)
@@ -141,6 +143,7 @@ public class StateChangedListener {
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
                 .message(message)
                 .build();
 
@@ -166,6 +169,7 @@ public class StateChangedListener {
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
                 .message(message)
                 .build();
 
@@ -191,6 +195,7 @@ public class StateChangedListener {
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
                 .message(message)
                 .build();
 

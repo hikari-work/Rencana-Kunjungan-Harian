@@ -57,7 +57,6 @@ public class StateService {
 	public void setState(String jid, State newState) {
 		if (isUserInState(jid)) {
 			state.get(jid).setCurrentState(newState);
-			publisher.publishEvent(new StateChangedEvent(this, state.get(jid)));
 			log.info("State updated for JID: {}, new State: {}", jid, newState);
 		}
 	}
