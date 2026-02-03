@@ -156,12 +156,12 @@ public class StateService {
 
 			saveUserState(jid, newStateData);
 			log.info("Created new state for user: {}", jid);
-
 			return Mono.just(newStateData);
 		});
 	}
 
 	private Mono<State> processVisitData(String jid, StateData stateData, Visit visit, Visit visitUpdate) {
+
 		if (visitUpdate.getVisitType() != null && visit.getVisitType() == null) {
 			visit.setVisitType(visitUpdate.getVisitType());
 		}
@@ -186,45 +186,39 @@ public class StateService {
 			visit.setPlafond(visitUpdate.getPlafond());
 		}
 
-		// Tentukan state berikutnya berdasarkan data yang masih kurang
 		State nextState = determineNextState(visit);
 
-		// Update state
 		setState(jid, nextState);
 		stateData.setCurrentState(nextState);
 
-		// Simpan perubahan
 		saveUserState(jid, stateData);
 
 		log.info("Next state for user {}: {}", jid, nextState);
 
+		publisher.publishEvent(new StateChangedEvent(this, stateData));
 		return Mono.just(nextState);
 	}
 
 	private State determineNextState(Visit visit) {
-		// 1. Cek SPK (paling pertama)
 		if (visit.getSpk() == null) {
 			return State.ADD_SPK;
 		}
 
-		// 2. Cek Note/Caption
 		if (visit.getNote() == null) {
 			return State.ADD_CAPTION;
 		}
 
 		VisitType visitType = visit.getVisitType();
 
-		// 3. Cek Appointment untuk MONITORING atau TAGIHAN
 		if (visitType == VisitType.MONITORING || visitType == VisitType.TAGIHAN) {
 			if (visit.getAppointment() == null) {
 				return State.ADD_APPOINTMENT;
 			}
 		}
 
-		// 4. Cek Plafond untuk CANVASING atau SURVEY
 		if (visitType == VisitType.CANVASING || visitType == VisitType.SURVEY) {
 			if (visit.getPlafond() == null) {
-				return State.ADD_LIMIT; // Assuming you have this state
+				return State.ADD_LIMIT;
 			}
 		}
 
@@ -232,7 +226,6 @@ public class StateService {
 		return null;
 	}
 
-	// Helper method untuk save state (implement sesuai repository Anda)
 	private void saveUserState(String jid, StateData stateData) {
 		state.put(jid, stateData);
 	}
