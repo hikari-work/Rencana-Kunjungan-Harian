@@ -64,6 +64,9 @@ public class AddCaption implements StateHandlers {
                     log.error("No visit data found in state for chatId: {}", chatId);
                     return Mono.empty();
                 }
+                if (caption.equalsIgnoreCase("kosong")) {
+                    caption = "";
+                }
 
                 visit.setNote(caption);
                 log.info("Setting caption '{}' for visit: {}", caption, visit.getName());
