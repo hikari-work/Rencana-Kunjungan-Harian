@@ -6,4 +6,5 @@ import reactor.core.publisher.Mono;
 
 public interface StateHandlers {
     Mono<Void> handle(StateData stateData);
+    Mono<Void> handle(WebhookPayload message);
 }

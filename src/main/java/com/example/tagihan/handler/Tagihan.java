@@ -89,7 +89,7 @@ public class Tagihan implements Messagehandler {
                         })
                 )
                 .flatMap(bill -> {
-                    LocalDate reminder = DateRangeUtil.parseDate(param1);
+                    LocalDate reminder = DateRangeUtil.parseReminder(param1);
                     Long appointment = parseAppointment(param1);
 
                     log.info("Processing bill - reminder: {}, appointment: {}", reminder, appointment);

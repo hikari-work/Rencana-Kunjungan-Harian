@@ -41,7 +41,7 @@ public class DateRangeUtil {
         LocalDate endDate = LocalDate.parse(endDateStr);
         return createDateRange(startDate, endDate);
     }
-    private static LocalDate parseReminder(String text) {
+    public static LocalDate parseReminder(String text) {
         if (text == null || text.isEmpty()) {
             return null;
         }

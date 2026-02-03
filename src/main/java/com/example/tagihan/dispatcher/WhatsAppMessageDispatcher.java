@@ -1,6 +1,8 @@
 package com.example.tagihan.dispatcher;
 
 import com.example.tagihan.dto.WebhookPayload;
+import com.example.tagihan.service.StateData;
+import com.example.tagihan.service.StateService;
 import com.example.tagihan.util.CaptionFindUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ public class WhatsAppMessageDispatcher {
     private final Set<String> processingMessages = ConcurrentHashMap.newKeySet();
 
     private final Map<String, Function<WebhookPayload, Mono<Void>>> config = new HashMap<>();
+    private final StateService stateService;
+    private final StateDispatcher stateDispatcher;
 
     @PostConstruct
     public void init() {
@@ -47,12 +51,28 @@ public class WhatsAppMessageDispatcher {
     public Mono<Long> dispatch(WebhookPayload message) {
         String caption = CaptionFindUtil.caption(message);
         log.info("Caption: {}", caption);
+        log.info("Processing message From: {}", message.getPayload().getFrom());
+
+        StateData userState = stateService.getUserState(message.getPayload().getFrom());
+
+        if (userState != null) {
+            log.info("User has active state: {}", userState.getCurrentState());
+            return stateDispatcher.handle(message)
+                    .doOnSubscribe(sub -> log.info("Dispatching to state handler"))
+                    .doOnSuccess(v -> log.info("State handler completed successfully"))
+                    .doOnError(error -> log.error("Error handling state update: {}", userState.getCurrentState(), error))
+                    .then(Mono.just(0L));
+        }
+
         String messageId = message.getPayload().getId();
+
         if (!processingMessages.add(messageId)) {
             log.warn("Message already being processed: {}", messageId);
             return Mono.empty();
         }
+
         if (caption == null || !caption.startsWith(MESSAGE_PREFIX)) {
+            processingMessages.remove(messageId);
             return Mono.empty();
         }
 
@@ -63,6 +83,7 @@ public class WhatsAppMessageDispatcher {
 
         if (handler == null) {
             log.error("No handler found for command: {}", command);
+            processingMessages.remove(messageId);
             return Mono.empty();
         }
 
@@ -70,9 +91,8 @@ public class WhatsAppMessageDispatcher {
                 .onErrorResume(error -> {
                     log.error("Error handling command: {}", command, error);
                     return Mono.empty();
-                }).then(Mono.defer(() -> {
-                    processingMessages.remove(messageId);
-                    return Mono.just(0L);
-                }));
+                })
+                .then(Mono.defer(() -> Mono.just(0L)))
+                .doFinally(signalType -> processingMessages.remove(messageId));
     }
 }
