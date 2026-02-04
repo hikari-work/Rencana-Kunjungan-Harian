@@ -76,4 +76,8 @@ public class VisitService {
                 range.end()
         );
     }
+    public Mono<Visit> save(Visit visit) {
+        log.info("Saving visit: {}", visit);
+        return visitRepository.save(visit);
+    }
 }

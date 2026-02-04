@@ -16,10 +16,11 @@ public class UserService {
 	public Mono<User> findByJid(String jid) {
 		return userRepository.findById(jid);
 	}
+
 	public Mono<User> saveUser(String jid, String accountOfficer) {
 		return userRepository.findById(jid)
 				.switchIfEmpty(
-						userRepository.save(new User(jid, accountOfficer, Roles.MEMBER))
+						Mono.defer(() -> userRepository.save(new User(jid, accountOfficer, Roles.MEMBER)))
 				);
 	}
 }

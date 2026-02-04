@@ -1,6 +1,8 @@
 package com.example.tagihan.dispatcher;
 
 import com.example.tagihan.dto.WebhookPayload;
+import com.example.tagihan.handler.state.CompletedVisitState;
+import com.example.tagihan.service.State;
 import com.example.tagihan.service.StateData;
 import com.example.tagihan.service.StateService;
 import com.example.tagihan.util.CaptionFindUtil;
@@ -29,6 +31,7 @@ public class WhatsAppMessageDispatcher {
     private final Map<String, Function<WebhookPayload, Mono<Void>>> config = new HashMap<>();
     private final StateService stateService;
     private final StateDispatcher stateDispatcher;
+    private final CompletedVisitState completedVisitState;
 
     @PostConstruct
     public void init() {
@@ -46,6 +49,12 @@ public class WhatsAppMessageDispatcher {
                 }
             }
         });
+    }
+    public Mono<Void> handle(StateData stateData) {
+        if (stateData.getCurrentState().equals(State.COMPLETED)) {
+            return completedVisitState.handle(stateData).then();
+        }
+        return Mono.empty();
     }
 
     public Mono<Long> dispatch(WebhookPayload message) {

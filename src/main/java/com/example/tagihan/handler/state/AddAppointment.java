@@ -17,6 +17,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+
 @Slf4j
 @StateHandler(state = State.ADD_APPOINTMENT)
 @Component
@@ -28,24 +29,31 @@ public class AddAppointment implements StateHandlers {
 
 	@Override
 	public Mono<Void> handle(StateData stateData) {
-		return Mono.justOrEmpty(null);
+		return Mono.empty();
 	}
 
 	@Override
 	public Mono<Void> handle(WebhookPayload message) {
 		String text = message.getPayload().getBody();
+		StateData data = stateService.getUserState(message.getPayload().getFrom());
+
+		if (text.equalsIgnoreCase("kosong")) {
+			data.getVisit().setAppointment(0L);
+			return stateService.setVisitData(message.getPayload().getFrom(), data.getVisit())
+					.then();
+		}
 		Long appointment = NumberParser.parseFirstNumber(text);
 		if (appointment == null) {
 			WhatsAppRequestDTO requestDTO = WhatsAppRequestDTO.builder()
 					.type(WhatsAppMessageType.TEXT)
-					.message("Saya tidak dapat menemukan nominalnya")
+					.message("Saya tidak dapat menemukan nominalnya silahkan kirim lagi nominal janjinya")
 					.phone(message.getPayload().getFrom())
 					.build();
 			return whatsappService.sendMessage(requestDTO)
 					.then();
 		}
+
 		String chatId = message.getPayload().getFrom();
-		StateData data = stateService.getUserState(chatId);
 		data.getVisit().setAppointment(appointment);
 		return stateService.setVisitData(chatId, data.getVisit())
 				.doOnSubscribe(sub -> log.info("Saving visit data for chatId: {}", chatId))

@@ -89,8 +89,10 @@ public class Tagihan implements Messagehandler {
                 .flatMap(bill -> {
                     LocalDate reminder = DateRangeUtil.parseReminder(param1);
                     Long appointment = NumberParser.parseFirstNumber(param1);
-                    if (appointment < 10000) {
-                        appointment = null;
+                    if (appointment != null) {
+                        if (appointment < 3000) {
+                            appointment = null;
+                        }
                     }
 
                     log.info("Processing bill - reminder: {}, appointment: {}", reminder, appointment);

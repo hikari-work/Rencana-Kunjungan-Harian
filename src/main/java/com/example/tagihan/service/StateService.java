@@ -200,7 +200,7 @@ public class StateService {
 					return determineStateFromVisit(visit);
 				})
 				.switchIfEmpty(
-						Mono.just(State.REGISTER)
+						Mono.just(State.COMPLETED)
 				);
 	}
 
@@ -239,13 +239,11 @@ public class StateService {
 				.then();
 	}
 
-	public boolean removeState(String jid) {
+	public void removeState(String jid) {
 		StateData removed = state.remove(jid);
 		if (removed != null) {
 			log.info("State removed for JID: {}", jid);
-			return true;
 		}
-		return false;
 	}
 
 	public void clearAllStates() {
@@ -268,6 +266,7 @@ public class StateService {
 			case ADD_REMINDER -> "Tambah Reminder";
 			case ADD_LIMIT -> "Tambah Limit";
 			case ADD_APPOINTMENT -> "Tambah Appointment";
+			case COMPLETED -> "Selesai";
 		};
 	}
 

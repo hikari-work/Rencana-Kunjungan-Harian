@@ -1,5 +1,6 @@
 package com.example.tagihan.handler;
 
+import com.example.tagihan.dispatcher.WhatsAppMessageDispatcher;
 import com.example.tagihan.dto.WhatsAppMessageType;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
 import com.example.tagihan.event.StateChangedEvent;
@@ -16,9 +17,11 @@ import reactor.core.publisher.Mono;
 public class StateChangedListener {
 
     private final WhatsappService whatsappService;
+    private final WhatsAppMessageDispatcher whatsAppMessageDispatcher;
 
-    public StateChangedListener(WhatsappService whatsappService) {
+    public StateChangedListener(WhatsappService whatsappService, WhatsAppMessageDispatcher whatsAppMessageDispatcher) {
         this.whatsappService = whatsappService;
+        this.whatsAppMessageDispatcher = whatsAppMessageDispatcher;
     }
 
     @EventListener(StateChangedEvent.class)
@@ -47,7 +50,11 @@ public class StateChangedListener {
             case ADD_REMINDER -> handleAddReminderStateUpdate(stateData);
             case ADD_LIMIT -> handleAddLimitStateUpdate(stateData);
             case ADD_APPOINTMENT -> handleAddAppointmentStateUpdate(stateData);
+            case COMPLETED -> handleCompletedStateUpdate(stateData);
         };
+    }
+    private Mono<Void> handleCompletedStateUpdate(StateData stateData) {
+        return whatsAppMessageDispatcher.handle(stateData);
     }
 
     private Mono<Void> handleRegisterStateUpdate(StateData stateData) {
@@ -138,8 +145,8 @@ public class StateChangedListener {
         String message = """
                 Silahkan masukkan tanggal reminder untuk tagihan ini.
                 
-                Format: DD-MM-YYYY
-                Contoh: 25-12-2024""";
+                Format: YYYY-MM-DD
+                Contoh: 2026-01-12""";
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
