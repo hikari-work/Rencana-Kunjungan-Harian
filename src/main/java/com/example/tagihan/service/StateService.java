@@ -10,20 +10,20 @@ import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 
 @Slf4j
 @Service
 public class StateService {
 	private final ApplicationEventPublisher publisher;
-
 	private final BillsService billsService;
 	private final Map<String, StateData> state = new LinkedHashMap<>();
+	private final UserService userService;
 
-	public StateService(BillsService billsService, ApplicationEventPublisher publisher) {
+	public StateService(BillsService billsService, ApplicationEventPublisher publisher, UserService userService) {
 		this.billsService = billsService;
 		this.publisher = publisher;
+		this.userService = userService;
 	}
 
 	public boolean isUserInState(String jid) {
@@ -34,12 +34,10 @@ public class StateService {
 		return state.get(jid);
 	}
 
-
 	public State getCurrentState(String jid) {
 		StateData stateData = getUserState(jid);
 		return stateData != null ? stateData.getCurrentState() : null;
 	}
-
 
 	public VisitType getVisitType(String jid) {
 		StateData stateData = getUserState(jid);
@@ -48,16 +46,15 @@ public class StateService {
 				: null;
 	}
 
-
 	public Visit getVisit(String jid) {
 		StateData stateData = getUserState(jid);
 		return stateData != null ? stateData.getVisit() : null;
 	}
 
-
 	public void setState(String jid, State newState) {
 		if (isUserInState(jid)) {
 			state.get(jid).setCurrentState(newState);
+			publisher.publishEvent(new StateChangedEvent(this, state.get(jid)));
 			log.info("State updated for JID: {}, new State: {}", jid, newState);
 		}
 	}
@@ -106,9 +103,8 @@ public class StateService {
 									visit.setAddress(bills.getAddress());
 									log.info("Bills data fetched for SPK: {}", visitUpdate.getSpk());
 
-									saveUserState(jid, stateData);
-
-									return processVisitData(jid, stateData, visit, visitUpdate);
+									return saveUserState(jid, stateData)
+											.then(processVisitData(jid, stateData, visit, visitUpdate));
 								})
 								.switchIfEmpty(
 										Mono.error(new IllegalStateException("SPK tidak ditemukan"))
@@ -121,14 +117,10 @@ public class StateService {
 
 	private Mono<StateData> getOrCreateStateData(String jid, Visit visitUpdate) {
 		return Mono.defer(() -> {
-			try {
-				StateData existingState = getUserState(jid);
-				if (existingState != null) {
-					log.debug("Found existing state for user: {}", jid);
-					return Mono.just(existingState);
-				}
-			} catch (Exception e) {
-				log.info("No existing state found for user: {}, creating new state", jid);
+			StateData existingState = getUserState(jid);
+			if (existingState != null) {
+				log.debug("Found existing state for user: {}", jid);
+				return Mono.just(existingState);
 			}
 
 			Visit newVisit = Visit.builder()
@@ -154,14 +146,14 @@ public class StateService {
 					.visit(newVisit)
 					.build();
 
-			saveUserState(jid, newStateData);
 			log.info("Created new state for user: {}", jid);
-			return Mono.just(newStateData);
+
+			return saveUserState(jid, newStateData)
+					.thenReturn(newStateData);
 		});
 	}
 
 	private Mono<State> processVisitData(String jid, StateData stateData, Visit visit, Visit visitUpdate) {
-
 		if (visitUpdate.getVisitType() != null && visit.getVisitType() == null) {
 			visit.setVisitType(visitUpdate.getVisitType());
 		}
@@ -186,26 +178,43 @@ public class StateService {
 			visit.setPlafond(visitUpdate.getPlafond());
 		}
 
-		State nextState = determineNextState(visit);
+		if (visitUpdate.getReminderDate() != null && visit.getReminderDate() == null) {
+			visit.setReminderDate(visitUpdate.getReminderDate());
+		}
 
-		setState(jid, nextState);
-		stateData.setCurrentState(nextState);
-
-		saveUserState(jid, stateData);
-
-		log.info("Next state for user {}: {}", jid, nextState);
-
-		publisher.publishEvent(new StateChangedEvent(this, stateData));
-		return Mono.just(nextState);
+		return determineNextState(visit)
+				.flatMap(nextState -> {
+					return Mono.fromRunnable(() -> {
+								setState(jid, nextState);
+								stateData.setCurrentState(nextState);
+							})
+							.then(saveUserState(jid, stateData))
+							.doOnSuccess(saved -> log.info("Next state for user {}: {}", jid, nextState))
+							.thenReturn(nextState);
+				});
 	}
 
-	private State determineNextState(Visit visit) {
+	private Mono<State> determineNextState(Visit visit) {
+		return userService.findByJid(visit.getUserId())
+				.mapNotNull(user -> {
+					return determineStateFromVisit(visit);
+				})
+				.switchIfEmpty(
+						Mono.just(State.REGISTER)
+				);
+	}
+
+	private State determineStateFromVisit(Visit visit) {
 		if (visit.getSpk() == null) {
 			return State.ADD_SPK;
 		}
 
 		if (visit.getNote() == null) {
 			return State.ADD_CAPTION;
+		}
+
+		if (visit.getReminderDate() == null) {
+			return State.ADD_REMINDER;
 		}
 
 		VisitType visitType = visit.getVisitType();
@@ -222,12 +231,12 @@ public class StateService {
 			}
 		}
 
-
 		return null;
 	}
 
-	private void saveUserState(String jid, StateData stateData) {
-		state.put(jid, stateData);
+	private Mono<Void> saveUserState(String jid, StateData stateData) {
+		return Mono.fromRunnable(() -> state.put(jid, stateData))
+				.then();
 	}
 
 	public boolean removeState(String jid) {
@@ -239,7 +248,6 @@ public class StateService {
 		return false;
 	}
 
-
 	public void clearAllStates() {
 		int count = state.size();
 		state.clear();
@@ -250,20 +258,18 @@ public class StateService {
 		return state.size();
 	}
 
-
 	public String getStateName(State state) {
 		if (state == null) return "Unknown";
 
-        return switch (state) {
-            case REGISTER -> "Registrasi";
-            case ADD_SPK -> "Tambah SPK";
-            case ADD_CAPTION -> "Tambah Catatan";
-            case ADD_REMINDER -> "Tambah Reminder";
-            case ADD_LIMIT -> "Tambah Limit";
-            case ADD_APPOINTMENT -> "Tambah Appointment";
-        };
+		return switch (state) {
+			case REGISTER -> "Registrasi";
+			case ADD_SPK -> "Tambah SPK";
+			case ADD_CAPTION -> "Tambah Catatan";
+			case ADD_REMINDER -> "Tambah Reminder";
+			case ADD_LIMIT -> "Tambah Limit";
+			case ADD_APPOINTMENT -> "Tambah Appointment";
+		};
 	}
-
 
 	public boolean isVisitComplete(String jid) {
 		if (!isUserInState(jid)) {
@@ -287,13 +293,12 @@ public class StateService {
 					visit.getAppointment() != null;
 			case CANVASING, SURVEY ->
 					visit.getPlafond() != null;
-        };
+		};
 	}
 
 	public Map<String, StateData> getAllStates() {
 		return new LinkedHashMap<>(state);
 	}
-
 
 	public void printAllStates() {
 		log.info("=== Current States ===");

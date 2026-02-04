@@ -57,6 +57,7 @@ public class WhatsAppMessageDispatcher {
 
         if (userState != null) {
             log.info("User has active state: {}", userState.getCurrentState());
+
             return stateDispatcher.handle(message)
                     .doOnSubscribe(sub -> log.info("Dispatching to state handler"))
                     .doOnSuccess(v -> log.info("State handler completed successfully"))

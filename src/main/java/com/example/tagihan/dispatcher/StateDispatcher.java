@@ -61,6 +61,9 @@ public class StateDispatcher {
 
     public Mono<Void> handle(WebhookPayload payload) {
         return Mono.defer(() -> {
+                    if (payload.getPayload().getChatId().contains("@g.us")) {
+                        return Mono.empty();
+                    }
                     String chatId = payload.getPayload().getFrom();
                     log.info("Handling payload for chatId: {}", chatId);
 

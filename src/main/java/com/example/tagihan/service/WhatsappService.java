@@ -30,7 +30,8 @@ public class WhatsappService {
 						   @Value("${base.whatsapp.device.id}") String deviceId) {
 		this.webClient = webClientBuilder
 				.baseUrl(whatsappUrl)
-				.defaultHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString((token).getBytes()))
+				.defaultHeader("Authorization", "Basic " + Base64.getEncoder()
+						.encodeToString((token).getBytes()))
 				.defaultCookie("X-Device-Id", deviceId)
 				.build();
 	}
@@ -162,7 +163,6 @@ public class WhatsappService {
 								});
 					}
 
-					// Ambil raw body sebagai String
 					return response.bodyToMono(String.class)
 							.doOnNext(rawBody -> log.info("Raw Response: {}", rawBody))
                             .<ResponseDTO>handle((rawBody, sink) -> {

@@ -113,7 +113,7 @@ public class StateChangedListener {
         String message = """
                 Silahkan masukkan caption/keterangan untuk tagihan ini.
                 
-                Contoh: Pembayaran jasa konsultasi bulan Januari""";
+                Contoh: Penagihan Slamet Agustus Janji Bayar Tanggal 21""";
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -162,10 +162,10 @@ public class StateChangedListener {
         }
 
         String message = """
-                Silahkan masukkan batas waktu pembayaran (deadline).
+                Silahkan masukkan plafond yang diajukan.
                 
-                Format: DD-MM-YYYY
-                Contoh: 31-12-2024""";
+                Format: 10,0rb|ribu|jt|juta|million|m|k
+                Contoh: 5,7jt""";
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -188,10 +188,11 @@ public class StateChangedListener {
         }
 
         String message = """
-                Silahkan masukkan tanggal appointment/pertemuan.
+                Silahkan masukkan nominal janji bayar
+                atau kosong jika tidak ingin diisi
                 
-                Format: DD-MM-YYYY HH:MM
-                Contoh: 15-12-2024 14:00""";
+                Format: 10,0rb|ribu|jt|juta|million|m|k
+                Contoh: 5,7jt""";
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
