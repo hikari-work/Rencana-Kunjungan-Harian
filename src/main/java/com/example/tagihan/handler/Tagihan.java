@@ -22,8 +22,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @Handler(trigger = "tagihan")
@@ -44,7 +42,7 @@ public class Tagihan implements Messagehandler {
         String chatId = message.getPayload().getFrom();
         String groupId = message.getPayload().getChatId();
         String text = message.getPayload().getBody().substring(".tagihan".length()).trim();
-        String[] parts = text.split("\\s+", 3);
+        String[] parts = text.split("\\s+", 2);
 
         if (stateService.isUserInState(chatId)) {
             return handleOngoingProcess(chatId, groupId);
@@ -90,7 +88,10 @@ public class Tagihan implements Messagehandler {
                 )
                 .flatMap(bill -> {
                     LocalDate reminder = DateRangeUtil.parseReminder(param1);
-                    Long appointment = parseAppointment(param1);
+                    Long appointment = NumberParser.parseFirstNumber(param1);
+                    if (appointment < 10000) {
+                        appointment = null;
+                    }
 
                     log.info("Processing bill - reminder: {}, appointment: {}", reminder, appointment);
 
@@ -185,21 +186,6 @@ public class Tagihan implements Messagehandler {
         return whatsappService.sendMessageText(errorRequest)
                 .doOnSubscribe(sub -> log.info("Sending error message: {}", errorMessage))
                 .then();
-    }
-
-
-
-    private Long parseAppointment(String text) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
-
-        try {
-            return NumberParser.parseFirstNumber(text);
-        } catch (Exception e) {
-            log.warn("Failed to parse appointment from: {}", text, e);
-            return null;
-        }
     }
 
     private boolean isGroupChat(String chatId) {
