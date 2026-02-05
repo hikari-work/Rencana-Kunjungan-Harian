@@ -64,7 +64,7 @@ public class StateChangedListener {
         }
 
         String message = String.format("""
-                Jelaskan kondisi usaha %s, atau kosong jika tidak ada usaha.
+                Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha usaha.
                 """, name != null ? name : "");
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()

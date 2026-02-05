@@ -68,7 +68,7 @@ public class VisitPlanSPK implements Messagehandler {
                                                 Flux.fromIterable(visits),
                                                 user.getAccountOfficer(), "lkn"
                                         )
-                                        .flatMap(pdfBytes -> sendPdfDocument(jid, pdfBytes, user.getAccountOfficer()));
+                                        .flatMap(pdfBytes -> sendPdfDocument(message.getPayload().getChatId(), pdfBytes, user.getAccountOfficer(), visits.getFirst().getName()));
                             });
                 })
                 .then()
@@ -99,11 +99,11 @@ public class VisitPlanSPK implements Messagehandler {
         return result;
     }
 
-    private Mono<Void> sendPdfDocument(String jid, byte[] pdfBytes, String accountOfficer) {
+    private Mono<Void> sendPdfDocument(String jid, byte[] pdfBytes, String accountOfficer, String spk) {
         return Mono.fromCallable(() -> {
                     String timestamp = LocalDateTime.now(JAKARTA_ZONE)
                             .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-                    String filename = String.format("LKN_%s_%s.pdf", accountOfficer, timestamp);
+                    String filename = String.format("LKN_%s_%s.pdf", spk, timestamp);
 
                     return new MockMultipartFile(
                             "file",
