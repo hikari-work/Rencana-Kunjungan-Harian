@@ -216,6 +216,9 @@ public class StateService {
 		if (visit.getReminderDate() == null) {
 			return State.ADD_REMINDER;
 		}
+		if (visit.getUsaha() == null) {
+			return State.ADD_USAHA;
+		}
 
 		VisitType visitType = visit.getVisitType();
 
@@ -266,6 +269,7 @@ public class StateService {
 			case ADD_REMINDER -> "Tambah Reminder";
 			case ADD_LIMIT -> "Tambah Limit";
 			case ADD_APPOINTMENT -> "Tambah Appointment";
+			case ADD_USAHA -> "Tambah Usaha";
 			case COMPLETED -> "Selesai";
 		};
 	}

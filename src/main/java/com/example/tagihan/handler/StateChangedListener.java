@@ -51,8 +51,34 @@ public class StateChangedListener {
             case ADD_LIMIT -> handleAddLimitStateUpdate(stateData);
             case ADD_APPOINTMENT -> handleAddAppointmentStateUpdate(stateData);
             case COMPLETED -> handleCompletedStateUpdate(stateData);
+            case ADD_USAHA -> handleAddUsaha(stateData);
         };
     }
+
+    private Mono<Void> handleAddUsaha(StateData stateData) {
+        String chatId = stateData.getVisit().getUserId();
+        String name = stateData.getVisit().getName();
+
+        if (chatId == null || chatId.isBlank()) {
+            return Mono.empty();
+        }
+
+        String message = String.format("""
+                Jelaskan kondisi usaha %s, atau kosong jika tidak ada usaha.
+                """, name != null ? name : "");
+
+        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
+                .message(message)
+                .build();
+
+        return whatsappService.sendMessage(dto)
+                .doOnSubscribe(sub -> log.info("Sending Add Usaha message to {}", chatId))
+                .doOnSuccess(v -> log.info("Add usaha message sent successfully to {}", chatId))
+                .then();
+    }
+
     private Mono<Void> handleCompletedStateUpdate(StateData stateData) {
         return whatsAppMessageDispatcher.handle(stateData);
     }
