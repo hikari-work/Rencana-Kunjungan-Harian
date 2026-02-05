@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Laporan Kunjungan Nasabah</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            margin: 0;
+            padding: 10px;
+            max-width: 190mm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .header h2 {
+            margin: 0 0 3px 0;
+            font-size: 12pt;
+            font-weight: bold;
+        }
+
+        .header .branch {
+            font-size: 9pt;
+            margin-bottom: 8px;
+        }
+
+        .info-section {
+            margin-bottom: 8px;
+            font-size: 8.5pt;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 70px 1fr 70px 1fr;
+            gap: 3px 10px;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 3px 4px;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            font-size: 7.5pt;
+            line-height: 1.2;
+        }
+
+        .col-no {
+            width: 5%;
+            text-align: center;
+        }
+
+        .col-date {
+            width: 10%;
+            text-align: center;
+        }
+
+        .col-debit {
+            width: 12%;
+            text-align: center;
+        }
+
+        .col-kolek {
+            width: 6%;
+            text-align: center;
+        }
+
+        .col-note {
+            width: 48%;
+        }
+
+        .col-paraf {
+            width: 10%;
+        }
+
+        .footer {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8.5pt;
+        }
+
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+
+        .signature-label {
+            margin-bottom: 35px;
+            font-weight: bold;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            display: inline-block;
+            width: 120px;
+        }
+
+        .currency {
+            text-align: right;
+        }
+
+        .reminder-text {
+            font-size: 7.5pt;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>LAPORAN KUNJUNGAN NASABAH</h2>
+    <div class="branch">Cabang Kaligondang</div>
+</div>
+
+<!-- Info Section -->
+<div class="info-section" th:if="${visits != null and !visits.isEmpty()}">
+    <div class="info-grid">
+        <div class="info-label">Nama</div>
+        <div>: <span th:text="${visits[0].name}">-</span></div>
+        <div class="info-label">No. SPK</div>
+        <div>: <span th:text="${visits[0].spk}">-</span></div>
+
+        <div class="info-label">Alamat</div>
+        <div>: <span th:text="${visits[0].address}">-</span></div>
+        <div class="info-label">Plafond</div>
+        <div>: <span th:text="${#numbers.formatInteger(visits[0].plafond, 0, 'COMMA')}">-</span></div>
+
+        <div class="info-label">Petugas</div>
+        <div colspan="3">: <span th:text="${petugasName ?: '-'}">-</span></div>
+    </div>
+</div>
+
+<!-- Table -->
+<table>
+    <thead>
+    <tr>
+        <th class="col-no">NO</th>
+        <th class="col-date">TGL<br/>KUNJUNGAN</th>
+        <th class="col-debit">BAKI<br/>DEBET</th>
+        <th class="col-kolek">KOL</th>
+        <th class="col-note">KETERANGAN</th>
+        <th class="col-paraf">PARAF<br/>PTG</th>
+        <th class="col-paraf">PARAF<br/>PIMP</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="visit, iterStat : ${visits}">
+        <td class="col-no" th:text="${iterStat.count}">1</td>
+        <td class="col-date" th:text="${#temporals.format(visit.visitDate, 'dd/MM/yy')}">-</td>
+        <td class="col-debit currency" th:text="${#numbers.formatInteger(visit.debitTray, 0, 'COMMA')}">-</td>
+        <td class="col-kolek" th:text="${visit.appointment != null ? visit.appointment : '-'}">-</td>
+        <td class="col-note">
+            <div th:text="${visit.note}"></div>
+            <div th:if="${visit.reminderDate != null}" class="reminder-text">
+                Reminder: <span th:text="${#temporals.format(visit.reminderDate, 'dd/MM/yy')}"></span>
+            </div>
+        </td>
+        <td class="col-paraf"></td>
+        <td class="col-paraf"></td>
+    </tr>
+
+    <!-- Empty rows -->
+    <tr th:each="i : ${#numbers.sequence(visits.size() + 1, 8)}" th:if="${visits.size() < 8}">
+        <td class="col-no" th:text="${i}">-</td>
+        <td class="col-date">&nbsp;</td>
+        <td class="col-debit">&nbsp;</td>
+        <td class="col-kolek">&nbsp;</td>
+        <td class="col-note">&nbsp;</td>
+        <td class="col-paraf">&nbsp;</td>
+        <td class="col-paraf">&nbsp;</td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- Footer -->
+<div class="footer">
+    <div class="signature-box">
+        <div class="signature-label">Petugas</div>
+        <div class="signature-line"></div>
+    </div>
+    <div class="signature-box">
+        <div class="signature-label">Pimpinan Cabang</div>
+        <div class="signature-line"></div>
+    </div>
+</div>
+
+</body>
+</html>
