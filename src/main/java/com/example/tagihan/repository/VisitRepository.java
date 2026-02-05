@@ -4,6 +4,7 @@ import com.example.tagihan.entity.Visit;
 import com.example.tagihan.entity.VisitType;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -13,7 +14,7 @@ import java.util.List;
 public interface VisitRepository extends ReactiveMongoRepository<Visit, String> {
     Mono<List<Visit>> findBySpk(String spk);
 
-    Mono<List<Visit>> findByUserId(String userId);
+    Flux<Visit> findByUserId(String userId);
 
     Mono<List<Visit>> findByUserIdAndVisitDate(String userId, Instant visitDate);
 

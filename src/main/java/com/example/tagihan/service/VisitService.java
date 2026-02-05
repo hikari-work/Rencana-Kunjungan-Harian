@@ -8,6 +8,7 @@ import com.example.tagihan.util.DateRangeUtil.DateRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -24,6 +25,9 @@ public class VisitService {
         log.debug("Finding visit by id: {}", id);
         return visitRepository.findById(id);
     }
+    public Flux<Visit> findAll() {
+        return visitRepository.findAll();
+    }
 
     public Mono<List<Visit>> findBySpk(String spk) {
         log.debug("Finding visits by spk: {}", spk);
@@ -31,7 +35,7 @@ public class VisitService {
     }
 
 
-    public Mono<List<Visit>> findByAo(String ao) {
+    public Flux<Visit> findByAo(String ao) {
         log.debug("Finding visits by ao: {}", ao);
         return visitRepository.findByUserId(ao);
     }

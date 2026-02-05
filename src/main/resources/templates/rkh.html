@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Rencana Kunjungan Harian</title>
+    <style>
+        @page { size: A4; margin: 10mm; }
+        body { font-family: Arial, sans-serif; font-size: 8.5pt; margin: 0; color: #000; }
+
+        .header { text-align: center; margin-bottom: 15px; }
+        .header h2 { margin: 0 0 10px 0; font-size: 12pt; text-decoration: underline; }
+
+        /* Style untuk Sub-Judul di Pinggir */
+        .sub-header { width: 100%; margin-bottom: 10px; }
+        .sub-header table { border: none !important; width: auto; }
+        .sub-header td { border: none !important; padding: 1px 0; text-align: left; font-weight: bold; }
+        .sub-header .label { width: 60px; }
+        .sub-header .separator { width: 15px; text-align: center; }
+
+        /* Style Tabel Utama */
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 5px; vertical-align: top; word-wrap: break-word; }
+        th { background: #f2f2f2; font-size: 7.5pt; text-transform: uppercase; }
+
+        .col-no { width: 25px; text-align: center; }
+        .col-tgl { width: 55px; text-align: center; }
+        .col-nama { width: 110px; }
+        .col-spk { width: 90px; text-align: center; }
+        .col-hasil { width: auto; }
+        .col-sign { width: 55px; }
+
+        .hasil-main { font-weight: bold; display: block; }
+        .sub-hasil { font-size: 7.5pt; color: #444; font-style: italic; margin-top: 2px; }
+
+        .footer { margin-top: 30px; display: flex; justify-content: space-between; }
+        .sig-box { width: 200px; text-align: center; }
+        .sig-space { margin-top: 45px; border-top: 1px solid #000; width: 140px; margin-left: auto; margin-right: auto; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>RENCANA KUNJUNGAN HARIAN</h2>
+</div>
+
+<div class="sub-header">
+    <table>
+        <tr>
+            <td class="label">NAMA</td>
+            <td class="separator">:</td>
+            <td th:text="${petugasName}">-</td>
+        </tr>
+        <tr>
+            <td class="label">TANGGAL</td>
+            <td class="separator">:</td>
+            <td>
+                <span th:if="${not #lists.isEmpty(visits)}">
+                    <span th:with="firstDate=${visits[0].visitDate}, lastDate=${visits[visits.size()-1].visitDate}">
+                        <span th:if="${#dates.format(#dates.from(firstDate), 'ddMMyy') == #dates.format(#dates.from(lastDate), 'ddMMyy')}"
+                              th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
+                        </span>
+                        <span th:unless="${#dates.format(#dates.from(firstDate), 'ddMMyy') == #dates.format(#dates.from(lastDate), 'ddMMyy')}"
+                              th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')} + ' s/d ' + ${#temporals.format(lastDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
+                        </span>
+                    </span>
+                </span>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th class="col-no">No</th>
+        <th class="col-tgl">Tanggal</th>
+        <th class="col-nama">Nama Debitur</th>
+        <th class="col-spk">No. SPK</th>
+        <th class="col-hasil">Hasil Kunjungan</th>
+        <th class="col-sign">Paraf Ptg</th>
+        <th class="col-sign">Paraf Pimp</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="v, stat : ${visits}">
+        <td class="col-no" th:text="${stat.count}">1</td>
+        <td class="col-tgl" th:text="${#temporals.format(v.visitDate, 'dd/MM/yy', 'Asia/Jakarta')}"></td>
+        <td class="col-nama" th:text="${v.name}"></td>
+        <td class="col-spk" th:text="${v.spk}"></td>
+        <td class="col-hasil">
+            <span class="hasil-main" th:text="${v.note}"></span>
+
+            <div class="sub-hasil" th:if="${v.visitType != null and v.visitType.name() != 'CANVASING' and v.visitType.name() != 'SURVEY'}">
+                    <span th:if="${v.appointment != null}"
+                          th:text="'Janji Bayar: ' + ${#numbers.formatInteger(v.appointment, 0, 'POINT')}"></span>
+                <span th:if="${v.reminderDate != null}"
+                      th:text="' | Reminder: ' + ${#temporals.format(v.reminderDate, 'dd/MM/yy')}"></span>
+            </div>
+        </td>
+        <td></td>
+        <td></td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <div class="sig-box">
+        <p>Petugas Lapangan,</p>
+        <div class="sig-space"></div>
+    </div>
+    <div class="sig-box">
+        <p>Pimpinan Cabang,</p>
+        <div class="sig-space"></div>
+    </div>
+</div>
+
+</body>
+</html>

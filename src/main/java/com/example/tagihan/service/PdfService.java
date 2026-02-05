@@ -18,26 +18,24 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class PdfService {
-
 	private final SpringTemplateEngine templateEngine;
 
-	public Mono<byte[]> generateLKNPdf(Flux<Visit> visitFlux, String petugasName) {
+	public Mono<byte[]> generateLKNPdf(Flux<Visit> visitFlux, String petugasName, String templateName) {
 		return visitFlux
 				.collectList()
-				.flatMap(visits -> generatePdfFromList(visits, petugasName));
+				.flatMap(visits -> generatePdfFromList(visits, petugasName, templateName));
 	}
 
-	private Mono<byte[]> generatePdfFromList(List<Visit> visits, String petugasName) {
+	private Mono<byte[]> generatePdfFromList(List<Visit> visits, String petugasName, String templateName) {
 		return Mono.fromCallable(() -> {
 					if (visits == null || visits.isEmpty()) {
 						throw new IllegalArgumentException("Tidak ada data kunjungan");
 					}
-
 					Context context = new Context();
 					context.setVariable("visits", visits);
 					context.setVariable("petugasName", petugasName);
 
-					String htmlContent = templateEngine.process("lkn-report", context);
+					String htmlContent = templateEngine.process(templateName, context);
 
 					return convertHtmlToPdfWithPlaywright(htmlContent);
 				})
