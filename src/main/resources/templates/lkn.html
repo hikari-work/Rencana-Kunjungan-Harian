@@ -20,7 +20,8 @@
         th { background: #f2f2f2; font-size: 7pt; text-transform: uppercase; }
 
         .col-no { width: 22px; text-align: center; }
-        .col-tgl { width: 100px; text-align: center; }
+        .col-tgl { width: 90px; text-align: center; }
+        .col-type { width: 70px; text-align: left; }
         .col-usaha { width: 80px; text-align: left; }
         .col-note { width: auto; }
         .col-amt { width: 75px; text-align: right; }
@@ -31,7 +32,6 @@
 
         .footer { margin-top: 15px; display: flex; justify-content: space-between; }
         .sig-box { width: 180px; text-align: center; }
-        .sig-space { border-top: 1px solid #000; width: 110px; margin: 30px auto 0; }
     </style>
 </head>
 <body>
@@ -62,9 +62,9 @@
     <tr>
         <th class="col-no">No</th>
         <th class="col-tgl">Tanggal</th>
-        <th class="col-usaha">Kondisi Usaha</th>
+        <th class="col-type">Tujuan</th> <th class="col-usaha">Kondisi Usaha</th>
         <th class="col-note">Note / Janji Bayar / Reminder</th>
-        <th class="col-amt">Angsuran</th> <th class="col-sign">Ptg</th>
+        <th class="col-amt">Tunggakan</th> <th class="col-sign">Ptg</th>
         <th class="col-sign">Pimp</th>
     </tr>
     </thead>
@@ -74,7 +74,9 @@
 
         <td class="col-tgl" th:text="${v.visitDate != null ? #temporals.format(v.visitDate, 'dd MMMM yyyy', 'Asia/Jakarta') : '-'}"></td>
 
-        <td class="col-usaha" th:text="${v.usaha != null ? v.usaha : '-'}">-</td>
+        <td class="col-type" th:text="${v.visitType != null ? v.visitType : '-'}">-</td>
+
+        <td class="col-usaha" th:text="${(v.usaha == null or v.usaha == '' or #strings.equalsIgnoreCase(v.usaha, 'kosong')) ? '-' : v.usaha}">-</td>
 
         <td class="col-note">
             <span class="note-main" th:text="${v.note}"></span>

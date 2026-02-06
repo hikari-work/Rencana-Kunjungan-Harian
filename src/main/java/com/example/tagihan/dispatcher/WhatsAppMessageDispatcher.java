@@ -25,7 +25,7 @@ import java.util.function.Function;
 public class WhatsAppMessageDispatcher {
 
     private final ApplicationContext applicationContext;
-    private static final String MESSAGE_PREFIX = ".";
+    private static final String MESSAGE_PREFIX = ",";
     private final Set<String> processingMessages = ConcurrentHashMap.newKeySet();
 
     private final Map<String, Function<WebhookPayload, Mono<Void>>> config = new HashMap<>();

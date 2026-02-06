@@ -3,6 +3,7 @@ package com.example.tagihan.controller;
 import com.example.tagihan.dispatcher.WhatsAppMessageDispatcher;
 import com.example.tagihan.dto.WebhookData;
 import com.example.tagihan.dto.WebhookPayload;
+import com.example.tagihan.service.scheduler.ReminderScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,11 @@ import reactor.core.scheduler.Schedulers;
 public class Webhook {
 
     private final WhatsAppMessageDispatcher whatsAppMessageDispatcher;
+    private final ReminderScheduler reminderScheduler;
 
-    public Webhook(WhatsAppMessageDispatcher whatsAppMessageDispatcher) {
+    public Webhook(WhatsAppMessageDispatcher whatsAppMessageDispatcher, ReminderScheduler reminderScheduler) {
         this.whatsAppMessageDispatcher = whatsAppMessageDispatcher;
+        this.reminderScheduler = reminderScheduler;
     }
 
     @PostMapping(value = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -43,5 +46,10 @@ public class Webhook {
     @GetMapping("/")
     public Mono<WebhookData> webhook() {
         return Mono.just(WebhookData.builder().chatId("123456789").from("admin").build());
+    }
+    @GetMapping("/manual-schedule")
+    public Mono<ResponseEntity<String>> manualSchedule() {
+        reminderScheduler.sendReminder();
+        return Mono.just(ResponseEntity.ok("OK"));
     }
 }

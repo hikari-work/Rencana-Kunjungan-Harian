@@ -32,7 +32,7 @@ public class WhatsappService {
 				.baseUrl(whatsappUrl)
 				.defaultHeader("Authorization", "Basic " + Base64.getEncoder()
 						.encodeToString((token).getBytes()))
-				.defaultCookie("X-Device-Id", deviceId)
+				.defaultHeader("X-Device-Id", deviceId)
 				.build();
 	}
 	public Mono<ResponseDTO> sendMessage(WhatsAppRequestDTO whatsappRequestDTO) {
