@@ -80,11 +80,6 @@ public class StateService {
 		return stateData;
 	}
 
-	public void updateState(String jid, StateData stateData) {
-		state.put(jid, stateData);
-		log.info("State updated for JID: {}", jid);
-	}
-
 	public Mono<State> setVisitData(String jid, Visit visitUpdate) {
 		return getOrCreateStateData(jid, visitUpdate)
 				.flatMap(stateData -> {
@@ -200,7 +195,7 @@ public class StateService {
 					return determineStateFromVisit(visit);
 				})
 				.switchIfEmpty(
-						Mono.just(State.COMPLETED)
+						Mono.just(State.REGISTER)
 				);
 	}
 
@@ -234,7 +229,7 @@ public class StateService {
 			}
 		}
 
-		return null;
+		return State.COMPLETED;
 	}
 
 	private Mono<Void> saveUserState(String jid, StateData stateData) {

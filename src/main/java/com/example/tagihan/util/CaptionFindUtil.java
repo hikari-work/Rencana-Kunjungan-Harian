@@ -5,6 +5,10 @@ import com.example.tagihan.dto.WebhookPayload;
 public class CaptionFindUtil {
 
     public static String caption(WebhookPayload payload) {
-        return payload.getPayload().isText() ? payload.getPayload().getBody() : payload.getPayload().getImage().getCaption();
+        if (payload.getPayload().isText()) {
+            return payload.getPayload().getBody();
+        } else {
+            return payload.getPayload().getImage().getCaption();
+        }
     }
 }

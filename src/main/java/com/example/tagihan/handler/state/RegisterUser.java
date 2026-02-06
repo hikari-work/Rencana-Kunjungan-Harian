@@ -20,7 +20,7 @@ public class RegisterUser implements StateHandlers {
 
     public RegisterUser(UserService userService, StateService stateService) {
         this.userService = userService;
-        this.stateService = stateService; // TAMBAHKAN INI
+        this.stateService = stateService;
     }
 
     @Override
