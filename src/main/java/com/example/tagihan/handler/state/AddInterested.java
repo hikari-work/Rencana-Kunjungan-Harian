@@ -3,34 +3,20 @@ package com.example.tagihan.handler.state;
 import com.example.tagihan.dispatcher.StateHandler;
 import com.example.tagihan.dispatcher.StateHandlers;
 import com.example.tagihan.dto.WebhookPayload;
-import com.example.tagihan.dto.WhatsAppMessageType;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
-import com.example.tagihan.entity.Visit;
-import com.example.tagihan.service.State;
-import com.example.tagihan.service.StateData;
-import com.example.tagihan.service.StateService;
-import com.example.tagihan.service.WhatsappService;
-import org.springframework.data.annotation.Transient;
+import com.example.tagihan.service.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-
-import java.util.Map;
-
 @Component
 @StateHandler(state = State.ADD_INTERESTED)
+@Slf4j
+@RequiredArgsConstructor
 public class AddInterested implements StateHandlers {
-
-    private static final Map<String, String> acceptableInputs = Map.of("1", "Sangat tertarik", "2", "Tertarik", "3", "Belum Tertarik", "4", "Tidak Tertarik");
-
-    @Transient
-    private final WhatsappService whatsappService;
     private final StateService stateService;
-
-    public AddInterested(WhatsappService whatsappService, StateService stateService) {
-        this.whatsappService = whatsappService;
-        this.stateService = stateService;
-    }
+    private final WhatsappService whatsappService;
 
     @Override
     public Mono<Void> handle(StateData stateData) {
@@ -39,20 +25,63 @@ public class AddInterested implements StateHandlers {
 
     @Override
     public Mono<Void> handle(WebhookPayload message) {
-        if (!acceptableInputs.containsKey(message.getPayload().getBody())) {
-            WhatsAppRequestDTO requestDTO = WhatsAppRequestDTO.builder()
-                    .type(WhatsAppMessageType.TEXT)
-                    .phone(message.getPayload().getFrom())
-                    .message("Saya tidak dapat menemukan jawaban yang anda kirim silahkan kirim lagi")
-                    .build();
-            return whatsappService.sendMessage(requestDTO)
+        return Mono.defer(() -> {
+            String text = message.getPayload().getBody();
+            String jid = message.getPayload().getFrom();
+            String chatId = message.getPayload().getChatId();
+
+            StateData userState = stateService.getUserState(jid);
+            if (userState == null) {
+                log.warn("No state found for user: {}", jid);
+                return Mono.empty();
+            }
+
+            if (text == null || text.isBlank()) {
+                log.warn("Empty interested input by user: {}", jid);
+                return sendErrorMessage(chatId, "Pilihan tidak boleh kosong. Ketik nomor 1-4.");
+            }
+
+            String interested = parseInterested(text.trim());
+
+            if (interested == null) {
+                log.warn("Invalid interested option by user {}: {}", jid, text);
+                return sendErrorMessage(chatId,
+                        """
+                                Pilihan tidak valid. Ketik nomor 1-4:
+                                1. Ya, sangat tertarik
+                                2. Ya, cukup tertarik
+                                3. Belum tertarik
+                                4. Tidak tertarik""");
+            }
+
+            log.info("Setting interested for user {}: {}", jid, interested);
+            userState.getVisit().setInterested(interested);
+
+            return stateService.setVisitData(jid, userState.getVisit())
+                    .doOnSuccess(v -> log.info("Interested added successfully for {}", jid))
+                    .doOnError(e -> log.error("Failed to add interested for {}", jid, e))
                     .then();
-        }
-        String chatId = message.getPayload().getFrom();
-        String answer = acceptableInputs.get(message.getPayload().getBody());
-        Visit visit = stateService.getUserState(chatId).getVisit();
-        visit.setInterested(answer);
-        return stateService.setVisitData(chatId, visit)
+        });
+    }
+
+    private String parseInterested(String input) {
+        return switch (input) {
+            case "1" -> "Ya, sangat tertarik";
+            case "2" -> "Ya, cukup tertarik";
+            case "3" -> "Belum tertarik";
+            case "4" -> "Tidak tertarik";
+            default -> null;
+        };
+    }
+
+    private Mono<Void> sendErrorMessage(String chatId, String errorMessage) {
+        WhatsAppRequestDTO errorRequest = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .message(errorMessage)
+                .build();
+
+        return whatsappService.sendMessageText(errorRequest)
+                .doOnSubscribe(sub -> log.info("Sending error message: {}", errorMessage))
                 .then();
     }
 }
