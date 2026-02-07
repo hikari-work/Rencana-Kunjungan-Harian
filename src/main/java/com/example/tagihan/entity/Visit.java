@@ -37,4 +37,5 @@ public class Visit {
     private Long appointment;
     private LocalDate reminderDate;
     private String usaha;
+    private String interested;
 }

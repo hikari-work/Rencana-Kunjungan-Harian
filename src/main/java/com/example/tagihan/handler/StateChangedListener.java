@@ -3,6 +3,7 @@ package com.example.tagihan.handler;
 import com.example.tagihan.dispatcher.WhatsAppMessageDispatcher;
 import com.example.tagihan.dto.WhatsAppMessageType;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
+import com.example.tagihan.entity.VisitType;
 import com.example.tagihan.event.StateChangedEvent;
 import com.example.tagihan.service.State;
 import com.example.tagihan.service.StateData;
@@ -50,37 +51,12 @@ public class StateChangedListener {
             case ADD_REMINDER -> handleAddReminderStateUpdate(stateData);
             case ADD_LIMIT -> handleAddLimitStateUpdate(stateData);
             case ADD_APPOINTMENT -> handleAddAppointmentStateUpdate(stateData);
+            case ADD_USAHA -> handleAddUsahaStateUpdate(stateData);
+            case ADD_NAME -> handleAddNameStateUpdate(stateData);
+            case ADD_INTERESTED -> handleAddInterestedStateUpdate(stateData);
+            case ADD_ADDRESS -> handleAddAddressStateUpdate(stateData);
             case COMPLETED -> handleCompletedStateUpdate(stateData);
-            case ADD_USAHA -> handleAddUsaha(stateData);
         };
-    }
-
-    private Mono<Void> handleAddUsaha(StateData stateData) {
-        String chatId = stateData.getVisit().getUserId();
-        String name = stateData.getVisit().getName();
-
-        if (chatId == null || chatId.isBlank()) {
-            return Mono.empty();
-        }
-
-        String message = String.format("""
-                Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha usaha.
-                """, name != null ? name : "");
-
-        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
-                .phone(chatId)
-                .type(WhatsAppMessageType.TEXT)
-                .message(message)
-                .build();
-
-        return whatsappService.sendMessage(dto)
-                .doOnSubscribe(sub -> log.info("Sending Add Usaha message to {}", chatId))
-                .doOnSuccess(v -> log.info("Add usaha message sent successfully to {}", chatId))
-                .then();
-    }
-
-    private Mono<Void> handleCompletedStateUpdate(StateData stateData) {
-        return whatsAppMessageDispatcher.handle(stateData);
     }
 
     private Mono<Void> handleRegisterStateUpdate(StateData stateData) {
@@ -121,7 +97,7 @@ public class StateChangedListener {
         String message = "Silahkan masukkan nomor SPK untuk tagihan " +
                 (name != null ? name : "") +
                 ".\n\n" +
-                "Contoh: SPK/2024/001";
+                "Contoh: 1075xxxxxxxxx";
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -143,10 +119,10 @@ public class StateChangedListener {
             return Mono.empty();
         }
 
-        String message = """
-                Silahkan masukkan caption/keterangan untuk tagihan ini.
+        String message = String.format("""
+                Silahkan masukkan caption/keterangan untuk tagihan an %S
                 
-                Contoh: Penagihan Slamet Agustus Janji Bayar Tanggal 21""";
+                Contoh: Penagihan Slamet Agustus Janji Bayar Tanggal 21""", stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -168,11 +144,11 @@ public class StateChangedListener {
             return Mono.empty();
         }
 
-        String message = """
-                Silahkan masukkan tanggal reminder untuk tagihan ini.
+        String message = String.format("""
+                Silahkan masukkan tanggal reminder untuk tagihan %s
                 
                 Format: YYYY-MM-DD
-                Contoh: 2026-01-12""";
+                Contoh: 2026-01-12""", stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -194,11 +170,11 @@ public class StateChangedListener {
             return Mono.empty();
         }
 
-        String message = """
-                Silahkan masukkan plafond yang diajukan.
+        String message = String.format("""
+                Silahkan masukkan plafond yang diajukan oleh %s
                 
                 Format: 10,0rb|ribu|jt|juta|million|m|k
-                Contoh: 5,7jt""";
+                Contoh: 5,7jt""", stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -220,12 +196,11 @@ public class StateChangedListener {
             return Mono.empty();
         }
 
-        String message = """
-                Silahkan masukkan nominal janji bayar
-                atau kosong jika tidak ingin diisi
+        String message = String.format("""
+                Apakah %s berjanji akan bayar tagihan pada tanggal yang telah ditentukan?
                 
                 Format: 10,0rb|ribu|jt|juta|million|m|k
-                Contoh: 5,7jt""";
+                Contoh: 5,7jt""", stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
 
         WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
                 .phone(chatId)
@@ -237,5 +212,134 @@ public class StateChangedListener {
                 .doOnSubscribe(sub -> log.info("Sending ADD_APPOINTMENT message to {}", chatId))
                 .doOnSuccess(v -> log.info("ADD_APPOINTMENT message sent successfully to {}", chatId))
                 .then();
+    }
+
+    private Mono<Void> handleAddUsahaStateUpdate(StateData stateData) {
+        String chatId = stateData.getVisit().getUserId();
+        String name = stateData.getVisit().getName();
+
+        if (chatId == null || chatId.isBlank()) {
+            log.warn("ChatId is null or blank, skipping ADD_USAHA notification");
+            return Mono.empty();
+        }
+        String message = getString(stateData, name);
+
+        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
+                .message(message)
+                .build();
+
+        return whatsappService.sendMessage(dto)
+                .doOnSubscribe(sub -> log.info("Sending ADD_USAHA message to {}", chatId))
+                .doOnSuccess(v -> log.info("ADD_USAHA message sent successfully to {}", chatId))
+                .then();
+    }
+
+    private static String getString(StateData stateData, String name) {
+        String message;
+        if (stateData.getVisit().getVisitType().equals(VisitType.CANVASING) || stateData.getVisit().getVisitType().equals(VisitType.SURVEY)) {
+            message = String.format("""
+                Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha.
+                
+                Contoh: Usaha Kue Kering
+                """, name != null ? name : "");
+        } else {
+            message = """
+            Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha.
+            
+            Contoh: Usaha berjalan lancar, omset stabil, sudah memiliki produk yang berkualitas
+            """;
+        }
+        return message;
+    }
+
+    private Mono<Void> handleAddNameStateUpdate(StateData stateData) {
+        String chatId = stateData.getVisit().getUserId();
+
+        if (chatId == null || chatId.isBlank()) {
+            log.warn("ChatId is null or blank, skipping ADD_NAME notification");
+            return Mono.empty();
+        }
+
+        String message = """
+                Silahkan masukkan nama lengkap nasabah/calon nasabah.
+                
+                Contoh: Budi Santoso""";
+
+        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
+                .message(message)
+                .build();
+
+        return whatsappService.sendMessage(dto)
+                .doOnSubscribe(sub -> log.info("Sending ADD_NAME message to {}", chatId))
+                .doOnSuccess(v -> log.info("ADD_NAME message sent successfully to {}", chatId))
+                .then();
+    }
+
+    private Mono<Void> handleAddInterestedStateUpdate(StateData stateData) {
+        String chatId = stateData.getVisit().getUserId();
+        String name = stateData.getVisit().getName();
+
+        if (chatId == null || chatId.isBlank()) {
+            log.warn("ChatId is null or blank, skipping ADD_INTERESTED notification");
+            return Mono.empty();
+        }
+
+        String message = String.format("""
+                Apakah %s tertarik dengan produk yang ditawarkan?
+                
+                Pilih salah satu:
+                1. Ya, sangat tertarik
+                2. Ya, cukup tertarik
+                3. Belum tertarik
+                4. Tidak tertarik
+                
+                Ketik nomor pilihannya (1-4)
+                """, name != null ? name : "nasabah");
+
+        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
+                .message(message)
+                .build();
+
+        return whatsappService.sendMessage(dto)
+                .doOnSubscribe(sub -> log.info("Sending ADD_INTERESTED message to {}", chatId))
+                .doOnSuccess(v -> log.info("ADD_INTERESTED message sent successfully to {}", chatId))
+                .then();
+    }
+
+    private Mono<Void> handleAddAddressStateUpdate(StateData stateData) {
+        String chatId = stateData.getVisit().getUserId();
+        String name = stateData.getVisit().getName();
+
+        if (chatId == null || chatId.isBlank()) {
+            log.warn("ChatId is null or blank, skipping ADD_ADDRESS notification");
+            return Mono.empty();
+        }
+
+        String message = String.format("""
+                Silahkan masukkan alamat lengkap %s.
+                
+                Contoh: Desa Lamuk RT 006 RW 008
+                """, name != null ? name : "calon nasabah");
+
+        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
+                .phone(chatId)
+                .type(WhatsAppMessageType.TEXT)
+                .message(message)
+                .build();
+
+        return whatsappService.sendMessage(dto)
+                .doOnSubscribe(sub -> log.info("Sending ADD_ADDRESS message to {}", chatId))
+                .doOnSuccess(v -> log.info("ADD_ADDRESS message sent successfully to {}", chatId))
+                .then();
+    }
+
+    private Mono<Void> handleCompletedStateUpdate(StateData stateData) {
+        return whatsAppMessageDispatcher.handle(stateData);
     }
 }

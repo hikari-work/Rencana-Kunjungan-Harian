@@ -103,7 +103,7 @@ public class VisitPlanSPK implements Messagehandler {
     private Mono<Void> sendPdfDocument(String jid, byte[] pdfBytes, String accountOfficer, String spk) {
         return Mono.fromCallable(() -> {
                     String timestamp = LocalDateTime.now(JAKARTA_ZONE)
-                            .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+                            .format(DateTimeFormatter.ofPattern("yyyyMMdd_HH:mm:ss"));
                     String filename = String.format("LKN_%s_%s.pdf", spk, timestamp);
 
                     return new MockMultipartFile(

@@ -59,27 +59,6 @@ public class StateService {
 		}
 	}
 
-	public StateData createState(String jid, Visit visit, State initialState) {
-		if (isUserInState(jid)) {
-			StateData existingState = getUserState(jid);
-			log.warn("State creation REJECTED for JID: {}. User already has active state: {}",
-					jid, existingState.getCurrentState());
-			throw new IllegalStateException(
-					String.format("Anda sudah memiliki proses aktif: %s. Ketik 'batal' untuk membatalkan.",
-							getStateName(existingState.getCurrentState()))
-			);
-		}
-
-		StateData stateData = StateData.builder()
-				.currentState(initialState)
-				.visit(visit)
-				.build();
-
-		state.put(jid, stateData);
-		log.info("New state CREATED for JID: {}, State: {}", jid, initialState);
-		return stateData;
-	}
-
 	public Mono<State> setVisitData(String jid, Visit visitUpdate) {
 		return getOrCreateStateData(jid, visitUpdate)
 				.flatMap(stateData -> {
@@ -177,6 +156,18 @@ public class StateService {
 			visit.setReminderDate(visitUpdate.getReminderDate());
 		}
 
+		if (visitUpdate.getName() != null && visit.getName() == null) {
+			visit.setName(visitUpdate.getName());
+		}
+
+		if (visitUpdate.getAddress() != null && visit.getAddress() == null) {
+			visit.setAddress(visitUpdate.getAddress());
+		}
+
+		if (visitUpdate.getInterested() != null && visit.getInterested() == null) {
+			visit.setInterested(visitUpdate.getInterested());
+		}
+
 		return determineNextState(visit)
 				.flatMap(nextState -> {
 					return Mono.fromRunnable(() -> {
@@ -200,38 +191,92 @@ public class StateService {
 	}
 
 	private State determineStateFromVisit(Visit visit) {
-		if (!visit.getVisitType().equals(VisitType.MONITORING)) {
-			if (visit.getSpk() == null) {
-				return State.ADD_SPK;
-			}
+		VisitType visitType = visit.getVisitType();
+
+		if (requiresSpk(visitType) && visit.getSpk() == null) {
+			return State.ADD_SPK;
 		}
 
-		if (visit.getNote() == null) {
+		if (requiresCaption(visitType) && visit.getNote() == null) {
 			return State.ADD_CAPTION;
 		}
 
-		if (visit.getReminderDate() == null) {
+		if (requiresReminder(visitType) && visit.getReminderDate() == null) {
 			return State.ADD_REMINDER;
+		}
+
+		if (requiresLimit(visitType) && visit.getPlafond() == null) {
+			return State.ADD_LIMIT;
+		}
+
+		if (requiresAppointment(visitType) && visit.getAppointment() == null) {
+			return State.ADD_APPOINTMENT;
+		}
+		if (visit.getName() == null) {
+			return State.ADD_NAME;
+		}
+		if (requiresInterested(visitType) && visit.getInterested() == null) {
+			return State.ADD_INTERESTED;
+		}
+
+		if (requiresAddress(visitType) && visit.getAddress() == null) {
+			return State.ADD_ADDRESS;
 		}
 		if (visit.getUsaha() == null) {
 			return State.ADD_USAHA;
 		}
 
-		VisitType visitType = visit.getVisitType();
-
-		if (visitType == VisitType.MONITORING || visitType == VisitType.TAGIHAN) {
-			if (visit.getAppointment() == null) {
-				return State.ADD_APPOINTMENT;
-			}
-		}
-
-		if (visitType == VisitType.CANVASING || visitType == VisitType.SURVEY) {
-			if (visit.getPlafond() == null) {
-				return State.ADD_LIMIT;
-			}
-		}
 
 		return State.COMPLETED;
+	}
+
+	/**
+	 * SPK diperlukan untuk: MONITORING, TAGIHAN
+	 */
+	private boolean requiresSpk(VisitType visitType) {
+		return visitType == VisitType.MONITORING || visitType == VisitType.TAGIHAN;
+	}
+
+	/**
+	 * Caption diperlukan untuk: MONITORING, TAGIHAN, CANVASING (tidak untuk SURVEY)
+	 */
+	private boolean requiresCaption(VisitType visitType) {
+		return visitType != VisitType.SURVEY;
+	}
+
+	/**
+	 * Reminder diperlukan untuk: TAGIHAN
+	 */
+	private boolean requiresReminder(VisitType visitType) {
+		return visitType == VisitType.TAGIHAN;
+	}
+
+	/**
+	 * Limit diperlukan untuk: SURVEY
+	 */
+	private boolean requiresLimit(VisitType visitType) {
+		return visitType == VisitType.SURVEY;
+	}
+
+	/**
+	 * Appointment diperlukan untuk: TAGIHAN
+	 */
+	private boolean requiresAppointment(VisitType visitType) {
+		return visitType == VisitType.TAGIHAN;
+	}
+
+	/**
+	 * Interested diperlukan untuk: CANVASING
+	 */
+	private boolean requiresInterested(VisitType visitType) {
+		return visitType == VisitType.CANVASING;
+	}
+
+	/**
+	 * Address diperlukan untuk: CANVASING
+	 */
+	private boolean requiresAddress(VisitType visitType) {
+		return visitType == VisitType.CANVASING;
 	}
 
 	private Mono<Void> saveUserState(String jid, StateData stateData) {
@@ -267,6 +312,9 @@ public class StateService {
 			case ADD_LIMIT -> "Tambah Limit";
 			case ADD_APPOINTMENT -> "Tambah Appointment";
 			case ADD_USAHA -> "Tambah Usaha";
+			case ADD_NAME -> "Tambah Nama";
+			case ADD_INTERESTED -> "Tambah Interested";
+			case ADD_ADDRESS -> "Tambah Alamat";
 			case COMPLETED -> "Selesai";
 		};
 	}
@@ -281,19 +329,8 @@ public class StateService {
 			return false;
 		}
 
-		VisitType visitType = visit.getVisitType();
-
-		if (visit.getUserId() == null || visit.getVisitType() == null ||
-				visit.getVisitDate() == null || visit.getNote() == null) {
-			return false;
-		}
-
-		return switch (visitType) {
-			case TAGIHAN, MONITORING ->
-					visit.getAppointment() != null;
-			case CANVASING, SURVEY ->
-					visit.getPlafond() != null;
-		};
+		State currentState = getCurrentState(jid);
+		return currentState == State.COMPLETED;
 	}
 
 	public Map<String, StateData> getAllStates() {

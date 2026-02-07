@@ -33,6 +33,7 @@ public abstract class BaseVisitHandler implements Messagehandler {
     private static final String BILL_NOT_FOUND_MESSAGE = "No SPK tidak ditemukan";
     private static final String GENERAL_ERROR_MESSAGE = "Terjadi kesalahan saat memproses tagihan";
     private static final String MISSING_SPK_MESSAGE = "Anda belum memasukkan no SPK";
+    private static final String MISSING_NOTE_MESSAGE = "Anda belum memasukkan catatan";
     private static final String ONGOING_PROCESS_MESSAGE_TEMPLATE =
             "Anda memiliki proses pengisian LKN/RKH yang belum selesai: %s. Harap selesaikan terlebih dahulu.";
     private static final long MINIMUM_APPOINTMENT_VALUE = 3000;
@@ -43,11 +44,15 @@ public abstract class BaseVisitHandler implements Messagehandler {
     private final BillsService billsService;
     private final StateDispatcher stateDispatcher;
 
-
     protected abstract VisitType getVisitType();
 
 
     protected abstract String getCommandPrefix();
+
+    protected boolean requiresSpk() {
+        return getVisitType() != VisitType.CANVASING &&
+                getVisitType() != VisitType.SURVEY;
+    }
 
     @Override
     public Mono<Void> handle(WebhookPayload message) {
@@ -69,7 +74,7 @@ public abstract class BaseVisitHandler implements Messagehandler {
         String chatId = message.getPayload().getFrom();
         String groupId = message.getPayload().getChatId();
         String rawText = message.getPayload().getBody();
-        String text = rawText.substring(getCommandPrefix().length() + 1).trim();
+        String text = rawText.substring(getCommandPrefix().length()).trim();
 
         return new MessageContext(chatId, groupId, text);
     }
@@ -77,11 +82,17 @@ public abstract class BaseVisitHandler implements Messagehandler {
     private Mono<Void> validateAndProcessCommand(WebhookPayload message, MessageContext context) {
         CommandInput input = parseCommandInput(context.text());
 
-        if (!input.isValid()) {
-            return sendErrorMessage(message, MISSING_SPK_MESSAGE);
+        if (requiresSpk()) {
+            if (!input.isValid()) {
+                return sendErrorMessage(message, MISSING_SPK_MESSAGE);
+            }
+            return processBillWithSpk(message, context, input);
+        } else {
+            if (context.text().trim().isEmpty()) {
+                return sendErrorMessage(message, MISSING_NOTE_MESSAGE);
+            }
+            return processCanvasing(context, context.text().trim());
         }
-
-        return processBill(message, context, input);
     }
 
     private CommandInput parseCommandInput(String text) {
@@ -92,14 +103,31 @@ public abstract class BaseVisitHandler implements Messagehandler {
         return new CommandInput(spk, additionalParams);
     }
 
-    private Mono<Void> processBill(WebhookPayload message, MessageContext context, CommandInput input) {
+    private Mono<Void> processBillWithSpk(WebhookPayload message, MessageContext context, CommandInput input) {
         return billsService.findBillBySpk(input.spk())
                 .doOnSubscribe(sub -> log.info("Searching bill with SPK: '{}'", input.spk()))
                 .doOnNext(bill -> log.info("Bill found for SPK: {}", input.spk()))
                 .switchIfEmpty(handleBillNotFound(message, input.spk()))
-                .flatMap(bill -> processFoundBill(context, bill, input))
+                .flatMap(bill -> processFoundBill(context, bill, input.additionalParams()))
                 .onErrorResume(BillNotFoundException.class, e -> Mono.empty())
                 .onErrorResume(e -> handleUnexpectedError(message, input.spk(), e));
+    }
+
+    private Mono<Void> processCanvasing(MessageContext context, String note) {
+        log.info("Processing canvasing for chatId: {} with note: {}", context.chatId(), note);
+
+        VisitParameters params = parseVisitParameters(note);
+        Visit visit = buildCanvasingVisit(context.chatId(), params);
+
+        return stateService.setVisitData(context.chatId(), visit)
+                .doOnNext(state -> log.info("Canvasing visit data saved for chatId: {}, next state: {}",
+                        context.chatId(), state))
+                .flatMap(state -> dispatchState(context.chatId()))
+                .doOnSuccess(v -> log.info("Canvasing processing completed successfully for chatId: {}",
+                        context.chatId()))
+                .doOnError(e -> log.error("Error processing canvasing for chatId: {}",
+                        context.chatId(), e))
+                .then();
     }
 
     private Mono<Bills> handleBillNotFound(WebhookPayload message, String spk) {
@@ -110,8 +138,8 @@ public abstract class BaseVisitHandler implements Messagehandler {
         });
     }
 
-    private Mono<Void> processFoundBill(MessageContext context, Bills bill, CommandInput input) {
-        VisitParameters params = parseVisitParameters(input.additionalParams());
+    private Mono<Void> processFoundBill(MessageContext context, Bills bill, String additionalParams) {
+        VisitParameters params = parseVisitParameters(additionalParams);
 
         log.info("Processing bill - SPK: {}, reminder: {}, appointment: {}",
                 bill.getNoSpk(), params.reminder(), params.appointment());
@@ -130,9 +158,6 @@ public abstract class BaseVisitHandler implements Messagehandler {
         return new VisitParameters(additionalParams, reminder, appointment);
     }
 
-    /**
-     * Parse dan validasi nilai appointment
-     */
     private Long parseAndValidateAppointment(String params) {
         Long appointment = NumberParser.parseFirstNumber(params);
 
@@ -159,7 +184,6 @@ public abstract class BaseVisitHandler implements Messagehandler {
                 .then();
     }
 
-
     private Mono<StateData> sendNotificationIfNeeded(MessageContext context, Bills bill, StateData state) {
         if (isGroupChat(context.groupId())) {
             return sendGroupNotification(context.groupId(), bill)
@@ -168,11 +192,9 @@ public abstract class BaseVisitHandler implements Messagehandler {
         return Mono.just(state);
     }
 
-
     private Mono<Void> dispatchState(String chatId) {
         return stateDispatcher.dispatch(stateService.getUserState(chatId));
     }
-
 
     private Mono<Void> sendGroupNotification(String chatId, Bills bill) {
         String message = buildGroupMessage(bill);
@@ -188,7 +210,6 @@ public abstract class BaseVisitHandler implements Messagehandler {
                 .doOnError(e -> log.error("Failed to send group notification to {}", chatId, e))
                 .then();
     }
-
 
     private String buildGroupMessage(Bills bill) {
         return String.format(
@@ -225,15 +246,35 @@ public abstract class BaseVisitHandler implements Messagehandler {
     }
 
     /**
-     * Handle proses yang sedang berlangsung
+     * Build Visit untuk canvasing tanpa SPK
      */
+    private Visit buildCanvasingVisit(String chatId, VisitParameters params) {
+        return Visit.builder()
+                .spk(null)  // Tidak ada SPK untuk canvasing
+                .name(null)
+                .note(params.note())
+                .address(null)
+                .appointment(params.appointment())
+                .reminderDate(params.reminder())
+                .userId(chatId)
+                .debitTray(null)
+                .penalty(null)
+                .interest(null)
+                .principal(null)
+                .plafond(null)
+                .visitType(getVisitType())
+                .visitDate(Instant.now())
+                .imageUrl(null)
+                .build();
+    }
+
     private Mono<Void> handleOngoingProcess(MessageContext context) {
         StateData userState = stateService.getUserState(context.chatId());
-        String spk = Optional.ofNullable(userState.getVisit())
-                .map(Visit::getName)
+        String identifier = Optional.ofNullable(userState.getVisit())
+                .map(visit -> Optional.ofNullable(visit.getSpk()).orElse(visit.getName()))
                 .orElse("N/A");
 
-        String message = String.format(ONGOING_PROCESS_MESSAGE_TEMPLATE, spk);
+        String message = String.format(ONGOING_PROCESS_MESSAGE_TEMPLATE, identifier);
 
         WhatsAppRequestDTO reminderRequest = WhatsAppRequestDTO.builder()
                 .phone(context.chatId())
@@ -244,7 +285,6 @@ public abstract class BaseVisitHandler implements Messagehandler {
                 .doOnSubscribe(sub -> log.info("Sending ongoing process reminder to {}", context.chatId()))
                 .then();
     }
-
 
     private Mono<Void> sendErrorMessage(WebhookPayload message, String errorMessage) {
         WhatsAppRequestDTO errorRequest = WhatsAppRequestDTO.builder()
@@ -268,7 +308,6 @@ public abstract class BaseVisitHandler implements Messagehandler {
     private boolean isGroupChat(String chatId) {
         return chatId != null && chatId.contains(GROUP_CHAT_SUFFIX);
     }
-
 
     private record MessageContext(String chatId, String groupId, String text) { }
 
