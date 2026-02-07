@@ -37,6 +37,7 @@ public class VisitPlanSPK implements Messagehandler {
     public Mono<Void> handle(WebhookPayload message) {
         String jid = message.getPayload().getFrom();
         String body = message.getPayload().getBody().trim().replace(".lkn", "");
+        String chatId = message.getPayload().getChatId();
 
         log.info("Processing LKN request from {} with body: {}", jid, body);
         if (body.isBlank()) {
@@ -46,7 +47,7 @@ public class VisitPlanSPK implements Messagehandler {
         return userService.findByJid(jid)
                 .switchIfEmpty(Mono.defer(() -> {
                     log.warn("User not found for JID: {}", jid);
-                    return sendTextMessage(jid, "User tidak ditemukan. Silakan hubungi administrator.")
+                    return sendTextMessage(chatId, "User tidak ditemukan. Silakan hubungi administrator.")
                             .then(Mono.empty());
                 }))
                 .flatMap(user -> {
@@ -59,7 +60,7 @@ public class VisitPlanSPK implements Messagehandler {
                             .flatMap(visits -> {
                                 if (visits.isEmpty()) {
                                     log.warn("No visits found for the given criteria");
-                                    return sendTextMessage(jid, "Tidak ada data kunjungan yang ditemukan untuk kriteria tersebut.");
+                                    return sendTextMessage(chatId, "Tidak ada data kunjungan yang ditemukan untuk kriteria tersebut.");
                                 }
 
                                 log.info("Found {} visits matching criteria", visits.size());
@@ -76,7 +77,7 @@ public class VisitPlanSPK implements Messagehandler {
                 .doOnError(error -> log.error("Error processing LKN for {}", jid, error))
                 .onErrorResume(error -> {
                     log.error("Failed to generate LKN for {}", jid, error);
-                    return sendTextMessage(jid, "Maaf, terjadi kesalahan: " + error.getMessage());
+                    return sendTextMessage(chatId, "Maaf, terjadi kesalahan: " + error.getMessage());
                 })
                 .then();
     }

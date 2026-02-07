@@ -5,6 +5,7 @@ import com.example.tagihan.dto.WhatsAppRequestDTO;
 import com.example.tagihan.entity.Visit;
 import com.example.tagihan.service.VisitService;
 import com.example.tagihan.service.WhatsappService;
+import com.example.tagihan.util.CurrencyUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,7 +29,6 @@ public class ReminderScheduler {
     @Scheduled(cron = "0 30 7 * * *", zone = "Asia/Jakarta")
     public void sendReminder() {
         LocalDate today = LocalDate.now(JAKARTA_ZONE);
-
         log.info("Starting reminder scheduler for date: {}", today);
 
         visitService.findAll()
@@ -86,8 +86,7 @@ public class ReminderScheduler {
         message.append("Alamat: ").append(visit.getAddress() != null ? visit.getAddress() : "-").append("\n");
 
         if (visit.getAppointment() != null && visit.getAppointment() > 0) {
-            double appointmentInMillion = visit.getAppointment() / 1_000_000.0;
-            message.append("Janji Bayar: Rp ").append(String.format("%.2f", appointmentInMillion)).append(" juta\n");
+            message.append("Janji Bayar:").append(CurrencyUtil.formatRupiah(visit.getAppointment()));
         }
 
         if (visit.getNote() != null && !visit.getNote().isBlank()) {
@@ -98,4 +97,5 @@ public class ReminderScheduler {
 
         return message.toString();
     }
+
 }

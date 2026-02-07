@@ -9,6 +9,7 @@ import com.example.tagihan.util.CaptionFindUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -24,8 +25,10 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class WhatsAppMessageDispatcher {
 
+    @Value("${message.prefix}")
+    private String messagePrefix;
+
     private final ApplicationContext applicationContext;
-    private static final String MESSAGE_PREFIX = ",";
     private final Set<String> processingMessages = ConcurrentHashMap.newKeySet();
 
     private final Map<String, Function<WebhookPayload, Mono<Void>>> config = new HashMap<>();
@@ -81,13 +84,13 @@ public class WhatsAppMessageDispatcher {
             return Mono.empty();
         }
 
-        if (caption == null || !caption.startsWith(MESSAGE_PREFIX)) {
+        if (caption == null || !caption.startsWith(messagePrefix)) {
             processingMessages.remove(messageId);
             return Mono.empty();
         }
 
         String[] messageTexts = caption.split(" ", 2);
-        String command = messageTexts[0].substring(MESSAGE_PREFIX.length());
+        String command = messageTexts[0].substring(messagePrefix.length());
 
         Function<WebhookPayload, Mono<Void>> handler = config.get(command);
 

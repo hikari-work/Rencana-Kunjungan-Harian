@@ -200,8 +200,10 @@ public class StateService {
 	}
 
 	private State determineStateFromVisit(Visit visit) {
-		if (visit.getSpk() == null) {
-			return State.ADD_SPK;
+		if (!visit.getVisitType().equals(VisitType.MONITORING)) {
+			if (visit.getSpk() == null) {
+				return State.ADD_SPK;
+			}
 		}
 
 		if (visit.getNote() == null) {
