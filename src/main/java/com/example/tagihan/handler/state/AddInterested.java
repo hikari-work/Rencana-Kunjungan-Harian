@@ -7,6 +7,7 @@ import com.example.tagihan.dto.WhatsAppRequestDTO;
 import com.example.tagihan.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.annotation.Transient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class AddInterested implements StateHandlers {
     private final StateService stateService;
+    @Transient
     private final WhatsappService whatsappService;
 
     @Override

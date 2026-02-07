@@ -11,6 +11,7 @@ import com.example.tagihan.service.StateService;
 import com.example.tagihan.service.WhatsappService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.annotation.Transient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +25,8 @@ public class AddAddress implements StateHandlers {
     private static final int MAX_ADDRESS_LENGTH = 500;
 
     private final StateService stateService;
+
+    @Transient
     private final WhatsappService whatsappService;
 
     @Override
@@ -72,7 +75,6 @@ public class AddAddress implements StateHandlers {
 
             visit.setAddress(address);
 
-            // Update state
             return stateService.setVisitData(jid, visit)
                     .doOnSubscribe(sub -> log.info("Processing address for user: {}", jid))
                     .doOnSuccess(state -> log.info("Address added successfully for user: {} - Address: {}",
