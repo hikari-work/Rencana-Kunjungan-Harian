@@ -169,22 +169,18 @@ public class StateService {
 		}
 
 		return determineNextState(visit)
-				.flatMap(nextState -> {
-					return Mono.fromRunnable(() -> {
-								setState(jid, nextState);
-								stateData.setCurrentState(nextState);
-							})
-							.then(saveUserState(jid, stateData))
-							.doOnSuccess(saved -> log.info("Next state for user {}: {}", jid, nextState))
-							.thenReturn(nextState);
-				});
+				.flatMap(nextState -> Mono.fromRunnable(() -> {
+                            setState(jid, nextState);
+                            stateData.setCurrentState(nextState);
+                        })
+                        .then(saveUserState(jid, stateData))
+                        .doOnSuccess(saved -> log.info("Next state for user {}: {}", jid, nextState))
+                        .thenReturn(nextState));
 	}
 
 	private Mono<State> determineNextState(Visit visit) {
 		return userService.findByJid(visit.getUserId())
-				.mapNotNull(user -> {
-					return determineStateFromVisit(visit);
-				})
+				.mapNotNull(user -> determineStateFromVisit(visit))
 				.switchIfEmpty(
 						Mono.just(State.REGISTER)
 				);
@@ -201,9 +197,7 @@ public class StateService {
 			return State.ADD_CAPTION;
 		}
 
-		if (requiresReminder(visitType) && visit.getReminderDate() == null) {
-			return State.ADD_REMINDER;
-		}
+
 
 		if (requiresLimit(visitType) && visit.getPlafond() == null) {
 			return State.ADD_LIMIT;
@@ -212,11 +206,13 @@ public class StateService {
 		if (requiresAppointment(visitType) && visit.getAppointment() == null) {
 			return State.ADD_APPOINTMENT;
 		}
+		if (visit.getAppointment() != null) {
+			if (requiresReminder(visitType) && visit.getReminderDate() == null) {
+				return State.ADD_REMINDER;
+			}
+		}
 		if (visit.getName() == null) {
 			return State.ADD_NAME;
-		}
-		if (requiresInterested(visitType) && visit.getInterested() == null) {
-			return State.ADD_INTERESTED;
 		}
 
 		if (requiresAddress(visitType) && visit.getAddress() == null) {
@@ -313,7 +309,6 @@ public class StateService {
 			case ADD_APPOINTMENT -> "Tambah Appointment";
 			case ADD_USAHA -> "Tambah Usaha";
 			case ADD_NAME -> "Tambah Nama";
-			case ADD_INTERESTED -> "Tambah Interested";
 			case ADD_ADDRESS -> "Tambah Alamat";
 			case COMPLETED -> "Selesai";
 		};

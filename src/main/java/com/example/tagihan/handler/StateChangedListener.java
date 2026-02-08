@@ -53,7 +53,6 @@ public class StateChangedListener {
             case ADD_APPOINTMENT -> handleAddAppointmentStateUpdate(stateData);
             case ADD_USAHA -> handleAddUsahaStateUpdate(stateData);
             case ADD_NAME -> handleAddNameStateUpdate(stateData);
-            case ADD_INTERESTED -> handleAddInterestedStateUpdate(stateData);
             case ADD_ADDRESS -> handleAddAddressStateUpdate(stateData);
             case COMPLETED -> handleCompletedStateUpdate(stateData);
         };
@@ -276,39 +275,6 @@ public class StateChangedListener {
         return whatsappService.sendMessage(dto)
                 .doOnSubscribe(sub -> log.info("Sending ADD_NAME message to {}", chatId))
                 .doOnSuccess(v -> log.info("ADD_NAME message sent successfully to {}", chatId))
-                .then();
-    }
-
-    private Mono<Void> handleAddInterestedStateUpdate(StateData stateData) {
-        String chatId = stateData.getVisit().getUserId();
-        String name = stateData.getVisit().getName();
-
-        if (chatId == null || chatId.isBlank()) {
-            log.warn("ChatId is null or blank, skipping ADD_INTERESTED notification");
-            return Mono.empty();
-        }
-
-        String message = String.format("""
-                Apakah %s tertarik dengan produk yang ditawarkan?
-                
-                Pilih salah satu:
-                1. Ya, sangat tertarik
-                2. Ya, cukup tertarik
-                3. Belum tertarik
-                4. Tidak tertarik
-                
-                Ketik nomor pilihannya (1-4)
-                """, name != null ? name : "nasabah");
-
-        WhatsAppRequestDTO dto = WhatsAppRequestDTO.builder()
-                .phone(chatId)
-                .type(WhatsAppMessageType.TEXT)
-                .message(message)
-                .build();
-
-        return whatsappService.sendMessage(dto)
-                .doOnSubscribe(sub -> log.info("Sending ADD_INTERESTED message to {}", chatId))
-                .doOnSuccess(v -> log.info("ADD_INTERESTED message sent successfully to {}", chatId))
                 .then();
     }
 

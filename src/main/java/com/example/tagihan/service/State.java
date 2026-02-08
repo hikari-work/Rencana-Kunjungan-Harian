@@ -11,6 +11,5 @@ public enum State {
 	COMPLETED,
 	ADD_USAHA,
 	ADD_NAME,
-	ADD_INTERESTED,
 	ADD_ADDRESS
 }
