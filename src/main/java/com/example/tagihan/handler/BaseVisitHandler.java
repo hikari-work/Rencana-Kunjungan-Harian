@@ -250,7 +250,7 @@ public abstract class BaseVisitHandler implements MessageHandler {
      */
     private Visit buildCanvasingVisit(String chatId, VisitParameters params) {
         return Visit.builder()
-                .spk(null)  // Tidak ada SPK untuk canvasing
+                .spk(null)
                 .name(null)
                 .note(params.note())
                 .address(null)
