@@ -1,6 +1,6 @@
 package com.example.tagihan.handler;
 
-import com.example.tagihan.dispatcher.Messagehandler;
+import com.example.tagihan.dispatcher.MessageHandler;
 import com.example.tagihan.dispatcher.StateDispatcher;
 import com.example.tagihan.dto.WebhookPayload;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
@@ -28,7 +28,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public abstract class BaseVisitHandler implements Messagehandler {
+public abstract class BaseVisitHandler implements MessageHandler {
 
     private static final String BILL_NOT_FOUND_MESSAGE = "No SPK tidak ditemukan";
     private static final String GENERAL_ERROR_MESSAGE = "Terjadi kesalahan saat memproses tagihan";

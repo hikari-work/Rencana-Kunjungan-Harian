@@ -1,7 +1,7 @@
 package com.example.tagihan.handler;
 
 import com.example.tagihan.dispatcher.Handler;
-import com.example.tagihan.dispatcher.Messagehandler;
+import com.example.tagihan.dispatcher.MessageHandler;
 import com.example.tagihan.dto.WebhookPayload;
 import com.example.tagihan.dto.WhatsAppMessageType;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 @Component
 @Handler(trigger = "lkn")
 @RequiredArgsConstructor
-public class VisitPlanSPK implements Messagehandler {
+public class VisitPlanSPK implements MessageHandler {
 
     private final VisitService visitService;
     private final UserService userService;

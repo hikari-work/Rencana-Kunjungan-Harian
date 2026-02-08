@@ -1,7 +1,7 @@
 package com.example.tagihan.handler;
 
 import com.example.tagihan.dispatcher.Handler;
-import com.example.tagihan.dispatcher.Messagehandler;
+import com.example.tagihan.dispatcher.MessageHandler;
 import com.example.tagihan.dto.WebhookPayload;
 import com.example.tagihan.dto.WhatsAppRequestDTO;
 import com.example.tagihan.service.BillsService;
@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Handler(trigger = "up_tagihan")
 @Component
-public class UpTagihan implements Messagehandler {
+public class UpTagihan implements MessageHandler {
     private final BillsService billsService;
     private final WhatsappService whatsappService;
 
