@@ -6,11 +6,15 @@ import com.example.tagihan.entity.VisitType;
 import com.example.tagihan.service.BillsService;
 import com.example.tagihan.service.StateService;
 import com.example.tagihan.service.WhatsappService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 @Handler(trigger = "tagihan")
 public class Tagihan extends BaseVisitHandler {
+
+    @Value("${message.prefix}")
+    private String prefix;
 
     public Tagihan(StateService stateService, WhatsappService whatsappService, BillsService billsService, StateDispatcher stateDispatcher) {
         super(stateService, whatsappService, billsService, stateDispatcher);
@@ -18,11 +22,11 @@ public class Tagihan extends BaseVisitHandler {
 
     @Override
     protected VisitType getVisitType() {
-        return VisitType.MONITORING;
+        return VisitType.TAGIHAN;
     }
 
     @Override
     protected String getCommandPrefix() {
-        return "tagihan";
+        return prefix + "tagihan";
     }
 }

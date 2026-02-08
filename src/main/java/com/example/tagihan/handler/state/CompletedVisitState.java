@@ -89,7 +89,7 @@ public class CompletedVisitState implements StateHandlers {
             message.append("• Reminder: ").append(visit.getReminderDate()).append("\n");
         }
         if (visit.getAppointment() != null) {
-            message.append("• Janji Bayar: Rp ").append(CurrencyUtil.formatRupiah(visit.getAppointment())).append("\n");
+            message.append("• Janji Bayar: ").append(CurrencyUtil.formatRupiah(visit.getAppointment())).append("\n");
         }
 
         message.append("\nTerima kasih! Data tagihan telah tersimpan di sistem.");

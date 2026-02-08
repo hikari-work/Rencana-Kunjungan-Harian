@@ -81,6 +81,7 @@ public abstract class BaseVisitHandler implements MessageHandler {
 
     private Mono<Void> validateAndProcessCommand(WebhookPayload message, MessageContext context) {
         CommandInput input = parseCommandInput(context.text());
+        log.info("Parsed input: {}", input);
 
         if (requiresSpk()) {
             if (!input.isValid()) {

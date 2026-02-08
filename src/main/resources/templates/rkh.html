@@ -60,16 +60,16 @@
                 <td class="label">TANGGAL</td>
                 <td class="separator">:</td>
                 <td>
-                    <span th:if="${not #lists.isEmpty(entry.value)}">
-                        <span th:with="vList=${entry.value}, firstDate=${vList[0].visitDate}, lastDate=${vList[vList.size()-1].visitDate}">
-                            <span th:if="${#dates.format(#dates.from(firstDate), 'ddMMyy') == #dates.format(#dates.from(lastDate), 'ddMMyy')}"
-                                  th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
-                            </span>
-                            <span th:unless="${#dates.format(#dates.from(firstDate), 'ddMMyy') == #dates.format(#dates.from(lastDate), 'ddMMyy')}"
-                                  th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')} + ' s/d ' + ${#temporals.format(lastDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
-                            </span>
+                <span th:if="${not #lists.isEmpty(entry.value)}">
+                    <span th:with="vList=${entry.value}, firstDate=${vList[0].visitDate}, lastDate=${vList[vList.size()-1].visitDate}">
+                        <span th:if="${#temporals.format(firstDate, 'ddMMyy', 'Asia/Jakarta') == #temporals.format(lastDate, 'ddMMyy', 'Asia/Jakarta')}"
+                              th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
+                        </span>
+                        <span th:unless="${#temporals.format(firstDate, 'ddMMyy', 'Asia/Jakarta') == #temporals.format(lastDate, 'ddMMyy', 'Asia/Jakarta')}"
+                              th:text="${#temporals.format(firstDate, 'dd MMMM yyyy', 'Asia/Jakarta')} + ' s/d ' + ${#temporals.format(lastDate, 'dd MMMM yyyy', 'Asia/Jakarta')}">
                         </span>
                     </span>
+                </span>
                 </td>
             </tr>
         </table>
