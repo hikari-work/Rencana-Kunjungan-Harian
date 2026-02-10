@@ -6,11 +6,15 @@ import com.example.tagihan.entity.VisitType;
 import com.example.tagihan.service.BillsService;
 import com.example.tagihan.service.StateService;
 import com.example.tagihan.service.WhatsappService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 @Handler(trigger = "janji")
 public class InformationalHandler extends BaseVisitHandler{
+
+	@Value("${message.prefix}")
+	private String prefix;
 
 	public InformationalHandler(StateService stateService, WhatsappService whatsappService, BillsService billsService, StateDispatcher stateDispatcher) {
 		super(stateService, whatsappService, billsService, stateDispatcher);
@@ -23,6 +27,6 @@ public class InformationalHandler extends BaseVisitHandler{
 
 	@Override
 	protected String getCommandPrefix() {
-		return "janji";
+		return prefix + "janji";
 	}
 }
