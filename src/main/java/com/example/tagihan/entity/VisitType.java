@@ -5,5 +5,6 @@ public enum VisitType {
     TAGIHAN,
     SURVEY,
     MONITORING,
-    CANVASING
+    CANVASING,
+    INFORMATIONAL
 }
