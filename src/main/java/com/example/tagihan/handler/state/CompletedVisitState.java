@@ -71,11 +71,11 @@ public class CompletedVisitState implements StateHandlers {
 
     private String buildSuccessMessage(VisitType visitType, Visit visit) {
         return switch (visitType) {
-            case TAGIHAN -> buildTagihanSuccessMessage(visit);
+            case TAGIHAN, INFORMATIONAL -> buildTagihanSuccessMessage(visit);
             case MONITORING -> buildMonitoringSuccessMessage(visit);
             case CANVASING -> buildCanvasingSuccessMessage(visit);
             case SURVEY -> buildSurveySuccessMessage(visit);
-        };
+		};
     }
 
 
@@ -196,6 +196,7 @@ public class CompletedVisitState implements StateHandlers {
             case MONITORING -> "monitoring";
             case CANVASING -> "canvasing";
             case SURVEY -> "survey";
+            case INFORMATIONAL -> "janji";
         };
     }
 

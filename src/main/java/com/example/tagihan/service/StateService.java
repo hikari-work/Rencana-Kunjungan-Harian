@@ -188,6 +188,18 @@ public class StateService {
 
 	private State determineStateFromVisit(Visit visit) {
 		VisitType visitType = visit.getVisitType();
+		if (visitType.equals(VisitType.INFORMATIONAL)) {
+			if (visit.getSpk() == null) {
+				return State.ADD_SPK;
+			}
+			if (visit.getAppointment() == null) {
+				return State.ADD_APPOINTMENT;
+			}
+			if (visit.getReminderDate() == null) {
+				return State.ADD_REMINDER;
+			}
+		}
+
 
 		if (requiresSpk(visitType) && visit.getSpk() == null) {
 			return State.ADD_SPK;
@@ -196,8 +208,6 @@ public class StateService {
 		if (requiresCaption(visitType) && visit.getNote() == null) {
 			return State.ADD_CAPTION;
 		}
-
-
 
 		if (requiresLimit(visitType) && visit.getPlafond() == null) {
 			return State.ADD_LIMIT;

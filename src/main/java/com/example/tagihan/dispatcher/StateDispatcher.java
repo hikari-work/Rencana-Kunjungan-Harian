@@ -48,7 +48,6 @@ public class StateDispatcher {
                     StateHandlers handler = stateHandlers.get(state);
 
                     if (handler != null) {
-                        log.info("Found handler for state: {}", state);
                         return handler.handle(stateData);
                     }
 
@@ -78,7 +77,6 @@ public class StateDispatcher {
                     StateHandlers handler = stateHandlers.get(state);
 
                     if (handler == null) {
-                        log.warn("No handler found for state: {}", state);
                         return Mono.empty();
                     }
 

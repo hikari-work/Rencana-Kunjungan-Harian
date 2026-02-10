@@ -5,6 +5,7 @@ import com.example.tagihan.dispatcher.MessageHandler;
 import com.example.tagihan.dto.WebhookPayload;
 import com.example.tagihan.entity.User;
 import com.example.tagihan.entity.Visit;
+import com.example.tagihan.entity.VisitType;
 import com.example.tagihan.service.PdfService;
 import com.example.tagihan.service.UserService;
 import com.example.tagihan.service.VisitService;
@@ -80,6 +81,7 @@ public class VisitPlanSPK extends BaseReportHandler implements MessageHandler {
 
     private Mono<Void> processVisits(String chatId, String body, String accountOfficer) {
         return buildFilteredVisits(body)
+                .filter(visit -> !visit.getVisitType().equals(VisitType.INFORMATIONAL))
                 .collectList()
                 .flatMap(visits -> {
                     if (visits.isEmpty()) {
