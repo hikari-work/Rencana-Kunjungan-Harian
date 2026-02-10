@@ -39,13 +39,6 @@ public class StateService {
 		return stateData != null ? stateData.getCurrentState() : null;
 	}
 
-	public VisitType getVisitType(String jid) {
-		StateData stateData = getUserState(jid);
-		return stateData != null && stateData.getVisit() != null
-				? stateData.getVisit().getVisitType()
-				: null;
-	}
-
 	public Visit getVisit(String jid) {
 		StateData stateData = getUserState(jid);
 		return stateData != null ? stateData.getVisit() : null;
@@ -236,9 +229,6 @@ public class StateService {
 		return State.COMPLETED;
 	}
 
-	/**
-	 * SPK diperlukan untuk: MONITORING, TAGIHAN
-	 */
 	private boolean requiresSpk(VisitType visitType) {
 		return visitType == VisitType.MONITORING || visitType == VisitType.TAGIHAN;
 	}
@@ -272,13 +262,6 @@ public class StateService {
 	}
 
 	/**
-	 * Interested diperlukan untuk: CANVASING
-	 */
-	private boolean requiresInterested(VisitType visitType) {
-		return visitType == VisitType.CANVASING;
-	}
-
-	/**
 	 * Address diperlukan untuk: CANVASING
 	 */
 	private boolean requiresAddress(VisitType visitType) {
@@ -297,59 +280,4 @@ public class StateService {
 		}
 	}
 
-	public void clearAllStates() {
-		int count = state.size();
-		state.clear();
-		log.warn("All states cleared. Total: {}", count);
-	}
-
-	public int getTotalUsers() {
-		return state.size();
-	}
-
-	public String getStateName(State state) {
-		if (state == null) return "Unknown";
-
-		return switch (state) {
-			case REGISTER -> "Registrasi";
-			case ADD_SPK -> "Tambah SPK";
-			case ADD_CAPTION -> "Tambah Catatan";
-			case ADD_REMINDER -> "Tambah Reminder";
-			case ADD_LIMIT -> "Tambah Limit";
-			case ADD_APPOINTMENT -> "Tambah Appointment";
-			case ADD_USAHA -> "Tambah Usaha";
-			case ADD_NAME -> "Tambah Nama";
-			case ADD_ADDRESS -> "Tambah Alamat";
-			case COMPLETED -> "Selesai";
-		};
-	}
-
-	public boolean isVisitComplete(String jid) {
-		if (!isUserInState(jid)) {
-			return false;
-		}
-
-		Visit visit = getVisit(jid);
-		if (visit == null) {
-			return false;
-		}
-
-		State currentState = getCurrentState(jid);
-		return currentState == State.COMPLETED;
-	}
-
-	public Map<String, StateData> getAllStates() {
-		return new LinkedHashMap<>(state);
-	}
-
-	public void printAllStates() {
-		log.info("=== Current States ===");
-		log.info("Total Users: {}", getTotalUsers());
-
-		state.forEach((jid, stateData) -> log.info("JID: {}, State: {}, VisitType: {}",
-				jid,
-				stateData.getCurrentState(),
-				stateData.getVisit() != null ? stateData.getVisit().getVisitType() : "NULL"));
-		log.info("===================");
-	}
 }
