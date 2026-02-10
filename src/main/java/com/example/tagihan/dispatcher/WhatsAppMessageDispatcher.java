@@ -46,7 +46,6 @@ public class WhatsAppMessageDispatcher {
             if (trigger != null && !trigger.isEmpty()) {
                 if (bean instanceof MessageHandler) {
                     config.put(trigger, ((MessageHandler) bean)::handle);
-                    log.info("Registered handler: {} for trigger: {}", name, trigger);
                 } else {
                     log.warn("Handler {} does not implement MessageHandler", name);
                 }
