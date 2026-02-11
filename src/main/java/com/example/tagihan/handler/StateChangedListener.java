@@ -242,13 +242,13 @@ public class StateChangedListener {
                 Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha.
                 
                 Contoh: Usaha Kue Kering
-                """, name != null ? name : "");
+                """, stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
         } else {
-            message = """
+            message = String.format("""
             Jelaskan kondisi usaha %s, atau kosong jika tidak ingin mengisi kondisi usaha.
             
             Contoh: Usaha berjalan lancar, omset stabil, sudah memiliki produk yang berkualitas
-            """;
+            """, stateData.getVisit().getName() != null ? stateData.getVisit().getName() : "");
         }
         return message;
     }

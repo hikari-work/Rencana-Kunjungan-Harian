@@ -141,8 +141,8 @@ public class PdfService {
 						if (v instanceof List<?> list) {
 							log.debug("  - Page for userId '{}': {} visits", k, list.size());
 
-							if (!list.isEmpty() && list.get(0) instanceof Visit firstVisit) {
-								Visit lastVisit = (Visit) list.get(list.size() - 1);
+							if (!list.isEmpty() && list.getFirst() instanceof Visit firstVisit) {
+								Visit lastVisit = (Visit) list.getLast();
 								log.debug("    Date range: {} to {}",
 										formatInstant(firstVisit.getVisitDate()),
 										formatInstant(lastVisit.getVisitDate()));
@@ -162,7 +162,6 @@ public class PdfService {
 		log.debug("=== HTML DEBUG ===");
 		log.debug("HTML length: {} characters", htmlContent.length());
 
-		// Preview HTML
 		String preview = htmlContent.length() > 500
 				? htmlContent.substring(0, 500) + "..."
 				: htmlContent;

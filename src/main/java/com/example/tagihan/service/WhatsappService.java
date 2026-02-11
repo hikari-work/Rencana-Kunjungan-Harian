@@ -16,8 +16,10 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Service
@@ -230,9 +232,8 @@ public class WhatsappService {
 			return shouldRetry;
 		}
 
-		return throwable instanceof java.net.ConnectException
-				|| throwable instanceof java.util.concurrent.TimeoutException
-				|| throwable instanceof java.io.IOException;
+		return throwable instanceof TimeoutException
+                || throwable instanceof IOException;
 	}
 
 	private Mono<ResponseDTO> handleError(Throwable throwable) {

@@ -16,9 +16,7 @@ public class UserService {
 	public Mono<User> findByJid(String jid) {
 		return userRepository.findById(jid);
 	}
-	public Mono<User> findByAccountOfficer(String accountOfficer) {
-		return userRepository.findByAccountOfficer(accountOfficer);
-	}
+
 
 	public Mono<User> saveUser(String jid, String accountOfficer) {
 		return userRepository.findById(jid)
