@@ -22,7 +22,7 @@ public class MongoConfig extends AbstractReactiveMongoConfiguration {
     @Value("${spring.mongodb.uri}")
     private String mongoUri;
 
-    @Value("${spring.data.mongodb.database:tagihan}")
+    @Value("${spring.data.mongodb.database:bot}")
     private String databaseName;
 
     @Override
