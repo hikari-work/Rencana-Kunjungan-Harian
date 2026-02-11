@@ -258,7 +258,7 @@ public class StateService {
 	 * Appointment diperlukan untuk: TAGIHAN
 	 */
 	private boolean requiresAppointment(VisitType visitType) {
-		return visitType == VisitType.TAGIHAN;
+		return visitType == VisitType.TAGIHAN || visitType == VisitType.INFORMATIONAL;
 	}
 
 	/**
