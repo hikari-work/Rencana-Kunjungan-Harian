@@ -237,7 +237,7 @@ public class StateService {
 	 * Caption diperlukan untuk: MONITORING, TAGIHAN, CANVASING (tidak untuk SURVEY)
 	 */
 	private boolean requiresCaption(VisitType visitType) {
-		return visitType != VisitType.SURVEY;
+		return visitType != VisitType.SURVEY && visitType != VisitType.INFORMATIONAL;
 	}
 
 	/**
