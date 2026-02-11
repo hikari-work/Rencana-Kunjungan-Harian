@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @EnableMongoRepositories(basePackages = "com.example.tagihan.repository")
 public class MongoConfig extends AbstractReactiveMongoConfiguration {
 
-    @Value("${spring.data.mongodb.uri}")
+    @Value("${spring.mongodb.uri}")
     private String mongoUri;
 
     @Value("${spring.data.mongodb.database:tagihan}")
